@@ -1,0 +1,143 @@
+---
+title: "LBD Pipeline Sequence"
+output:
+  html_document:
+    css: pipeline_style.css
+    # theme: darkly
+    highlight: tango
+fontsize: 12pt
+geometry: margin=1in
+vignette: >
+  %\VignetteIndexEntry{PipelineIntro}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+```{r setup, include = FALSE}
+knitr::opts_chunk$set(
+  collapse = TRUE,
+  comment = "#>"
+)
+suppressMessages(library(ggplot2))
+suppressMessages(library(ggdag))
+```
+
+
+This document is intended to help the user step through and understand the
+rewritten model-based geostatistics (MBG) pipeline using the
+[LBDCore](http://sandbox-web.ihme.washington.edu/~miker985/LBDCore/) package.
+Most of the modeling in the MBG process is done by a `parallel_model.R` script,
+and so this pipeline attempts to break that pmod script into reasonable chunks,
+along with giving the user better job tracking and management control. Any
+mentions of *pipeline* will refer to this flow of jobs (which are just the
+different sequential parts of the parallel model):
+
+
+1. Creating a pipeline.
+2. Prepping input data.
+3. Run stacker models.
+4. Prepping for MBG.
+5. Run the MBG.
+6. Create posterior predictions from MBG.
+
+
+### Features of the new Pipeline
+
+* Exclusively uses the `LBDCore` package and `R6` classes.
+* Parallel model split up into multiple chunks.
+* One memory light job perpetually running to track the different parallel model
+jobs.
+* Ability to define *any sequence of workflow*!
+* Jobs can be *relaunched at any given stage of the parallel model workflow*!
+
+
+### Coming _soon_ (TM)
+
+* A service to manage jobs.
+* Automated email service upon pipeline completion.
+* Relevant reorganization of outputs.
+
+
+
+
+## File structure of pipeline scripts
+
+The files inside the `mbg_central/LBDCore/demo` folder are as followed. All the files
+with `_PM_` in their names belong to the original training pmod script, split
+into sequential chunks 01 through 05. 
+
+** Each of those scripts have been modified to cater to the objects and
+structures provided by the pipeline.**
+
+From the user's point of view, all they need to do is just run `main.R` which
+will set up the necessary DAGs. Currently, all of the pipeline scripts are
+written catering to the training example scripts (where `tr_had_diarrhea` is the
+indicator, `training` is the indicator group, and modeled across the regions
+`c('ken', 'uga', 'tza)`).
+
+
+```{bash, eval = FALSE}
+┌─[sadatnfs@gen-uge-submit-p01]─[/share/code/geospatial/sadatnfs/lbd_core/mbg_central/LBDCore/demo]
+└──╼ tree
+.
+├── 01_PM_Data_Prepping.R
+├── 02_PM_Stacking.R
+├── 03_PM_PrepForFitting.R
+├── 04_PM_MBGFitting.R
+├── 05_PM_MBGPredict.R
+└── main.R
+
+0 directories, 6 files
+```
+
+
+## Prerequisite: Installing the LBDCore Package
+
+The LBDCore package source code exists in the
+[lbd_core](https://stash.ihme.washington.edu/projects/GEOSP/repos/lbd_core)
+repository's develop (default) branch. Once the latest head have been fetched,
+you can use the following snippet of code to install the package.
+
+
+```{r libload, eval = FALSE}
+## Point to personal directory (create if needed)
+personal_lib <- sprintf(
+  "~/R/x86_64-pc-linux-gnu-library/%s.%sgeo/",
+  R.Version()$major, R.Version()$minor
+)
+Sys.setenv(R_LIBS_USER = personal_lib)
+if (!dir.exists(personal_lib)) dir.create(personal_lib, recursive = TRUE)
+
+## Set up .libPaths()
+.libPaths(c(Sys.getenv("R_LIBS_USER"), .libPaths()))
+
+## Set up MKLROOT directory (needed if using RStudio)
+Sys.setenv(MKLROOT = "/opt/intel/compilers_and_libraries/linux/mkl")
+
+## Load the LBDCore library
+## The `suppressMessages()` is there just to remove all the intermediate
+## packages' loading messages.
+suppressMessages(library(LBDCore))
+```
+
+
+## Unit Tests on Pipeline
+
+The pipeline integration tests can be triggered by having `[int test]` in your
+commit message of your pull requests, and clicking "Trigger Build" from the PR.
+That will run the `test_pipeline.R` script.
+
+
+
+
+<!-- ## Blurb on INLA model -->
+
+<!-- The main model in the MBG pipeline is a regression of the following form: -->
+
+<!-- $$\begin{array}{cl} -->
+<!-- Y_{i,t} &\sim \text{Binomial}\left(p_{i,t}, N_{i,t} \right)\\ -->
+<!-- \text{logit}(p_{i,t}) &= \beta_0 + \beta_1 X_{i,t} + \gamma_{c[i]} + Z_{i,t} + \epsilon_{i,t} \\ -->
+<!-- \gamma_{c[i]} &\sim \mathcal{N}\left(0, \sigma^2_{country} \right) \\ -->
+<!-- Z_{i,t} &\sim \mathcal{GP}\left(0, \Sigma_{space} \otimes \Sigma_{t} \right) \\ -->
+<!-- \epsilon_{i,t} &\sim \mathcal{N}\left(0, \sigma^2_{nugget} \right) -->
+<!-- \end{array}$$ -->

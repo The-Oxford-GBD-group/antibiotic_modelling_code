@@ -1,0 +1,439 @@
+---
+title: "MBGDag"
+output:
+  html_document:
+    number_sections: true
+    css: pipeline_style.css
+    # theme: darkly
+    highlight: tango
+fontsize: 12pt
+geometry: margin=1in
+vignette: >
+  %\VignetteIndexEntry{MBGDagTutorial}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+  
+```{r setup, include = FALSE}
+knitr::opts_chunk$set(
+  collapse = TRUE,
+  comment = "#>"
+)
+```
+
+This document will go through the latter part of the `main.R` script and what
+each element in the snippet does. This will only deal with setting up an
+`MBGDag` object.
+
+Recall that in the previous vignette, the loopvars table looked like such:
+```r
+> Pipeline_Class$loopvars
+   region age holdout
+1:    ken   0       0
+2:    uga   0       0
+3:    tza   0       0
+```
+
+We will be running *three simultaneous DAGs* representing each of the rows of
+the loopvars table. 
+
+# Create Parallel Clusters
+
+The only way we can simultaneously track each of our DAGs is if we have parallel
+threads running and tracking the jobs. Hence, we create a multithreaded
+parallel cluster environment using `foreach` magic, as such:
+
+```{r foreach_cloo, eval = FALSE}
+registerDoParallel(cores = nrow(Pipeline_Class$loopvars))
+```
+The number of `cores` used are the number of DAGs we will be tracking.
+
+We use a parallel `foreach` loop as follows, and moving forward, this vignette
+will use one of the DAGs as example.
+
+```{r foreach, eval = FALSE}
+full_DAG_graph <- foreach(r = 1:nrow(Pipeline_Class$loopvars)) %dopar% { 
+  ... 
+  ## Return the list of region specific DAGs
+  return(DAG_object)
+}
+```
+We return the DAG object as the output of this `foreach` block. More on that
+soon.
+
+
+# Creating the MBGDag Object
+
+For each row `r` in the loopvars table, we create an
+[MBGDag](http://sandbox-web.ihme.washington.edu/~miker985/LBDCore/reference/MBGDag.html)
+object, which takes in the following initial parameters:
+
+1. `pipeline_class`: the `MBGPipeline` object previously created
+(`Pipeline_Class` in this vignette).
+2. `reg`: the region from the loopvars table row.
+3. `age`: the age group from the loopvars table row.
+4. `holdout`: the holdout from the loopvars table row (0 for full dataset).
+5. (Optional) `dag_hash`: a 5-character randomly generated string to be used as
+suffix for every job in this DAG, to allow for tracking unique jobs. This can be
+specified by the user.
+6. (Optional) `test`: test mode?
+7. `tmpdir`: A directory to store job logs, necessary for job tracking. Defaults
+to `~/.mbgdir`.
+
+We take out each of the components of the loopvars table, assign them to
+constants, and create an `MBGDag` object named `DAG_object`:
+```r
+loop_reg <- Pipeline_Class$loopvars[r, region]
+loop_age <- Pipeline_Class$loopvars[r, age]
+loop_holdout <- Pipeline_Class$loopvars[r, holdout]
+
+DAG_object <- MBGDag$new(
+  pipeline_class = Pipeline_Class,
+  reg = loop_reg,
+  age = loop_age,
+  holdout = loop_holdout
+)
+```
+
+# Adding Nodes to DAG
+
+Once our DAG is initialized, we need to add nodes to the graph. These nodes
+represent each of the jobs in the pipeline we will run and is noted in the
+introduction vignette. This will *not* submit the jobs yet, but will merely
+set up the graph.
+
+The method `create_node()` is used to add nodes to the graph. The following
+parameters are part of the `create_node()` method:
+
+1. `nodename`: Name of the node.
+2. `jobscript`: Path to R script.
+3. `project`: Cluster project. Default: `"proj_geo_nodes"`.
+4. `cores`: Number of threads. Default: 1.
+5. `ram_gb`: Amount of RAM. Default: `5` (5 GB).
+6. `runtime`: Run-time. Default: "01:00:00" (1 hour).
+7. `queue`: Queue. Default: `"geospatial.q"`.
+8. `hold_job`: Node to hold on. Default: `"previous"`, which will create a hold
+on the previous job. Alternatively, the node on which to hold can also be
+specified by `nodename`. This allows for a super flexible workflow as the user
+wants!
+9. `log_location`: Location to store logs to feed into setup_log_location.
+Default: `"sharedir"`.
+10. `singularity_version`: Singularity image (version or absolute path to
+image). Default: `"default"`.
+11. `singularity_opts`: A list with values for `SET_OMP_THREADS` and
+`SET_MKL_THREADS` to pass in OMP and MKL threads. Defaults to using the same
+amount of threads for each as the number of cores.
+12. `shell_script`: Path to shell script. Note that using argparse requires a
+special shell script (`shell_sing_argparse.sh`).
+
+Our nodes are all meant to be run sequentially, and so, other than the parent
+job, all other nodes use the `previous` hold logic. Any job with a hold will use
+the `-hold_jid`
+
+Let's add the five pmod jobs to the DAG. Each of the node scripts are located
+in `mbg_central/LBDCore/demo`, which are the generalized pmod script split up
+```r
+DAG_object$create_node(
+  nodename = "data_prep",
+  jobscript = paste0(
+    core_repo, "mbg_central/LBDCore/demo/01_PM_Data_Prepping.R"
+  ),
+  project = "proj_geospatial",
+  cores = 1,
+  ram_gb = 4,
+  runtime = "01:00:00",
+  queue = "all.q",
+  singularity_version = paste0(
+    "/ihme/singularity-images/lbd/",
+    "testing_INLA_builds/lbd_rpkgs3.6.0gcc9mkl",
+    "rstudioserver1.2.1511_v4.simg"
+  )
+)
+
+DAG_object$create_node(
+  nodename = "stacking",
+  jobscript = paste0(
+    core_repo, "mbg_central/LBDCore/demo/02_PM_Stacking.R"
+  ),
+  project = "proj_geospatial",
+  cores = 1,
+  ram_gb = 4,
+  runtime = "00:10:00",
+  queue = "all.q",
+  hold_job = "previous",
+  singularity_version = paste0(
+    "/ihme/singularity-images/lbd/",
+    "testing_INLA_builds/lbd_rpkgs3.6.0gcc9mkl",
+    "rstudioserver1.2.1511_v4.simg"
+  )
+)
+
+
+DAG_object$create_node(
+  nodename = "prep_for_INLA",
+  jobscript = paste0(
+    core_repo, "mbg_central/LBDCore/demo/03_PM_PrepForFitting.R"
+  ),
+  project = "proj_geospatial",
+  cores = 1,
+  ram_gb = 4,
+  runtime = "00:10:00",
+  queue = "all.q",
+  hold_job = "previous",
+  singularity_version = paste0(
+    "/ihme/singularity-images/lbd/",
+    "testing_INLA_builds/lbd_rpkgs3.6.0gcc9mkl",
+    "rstudioserver1.2.1511_v4.simg"
+  )
+)
+
+
+
+DAG_object$create_node(
+  nodename = "MBG_fitting",
+  jobscript = paste0(
+    core_repo, "mbg_central/LBDCore/demo/04_PM_MBGFitting.R"
+  ),
+  project = "proj_geospatial",
+  cores = 3,
+  ram_gb = 5,
+  runtime = "00:20:00",
+  queue = "all.q",
+  hold_job = "previous",
+  singularity_version = paste0(
+    "/ihme/singularity-images/lbd/",
+    "testing_INLA_builds/lbd_rpkgs3.6.0gcc9mkl",
+    "rstudioserver1.2.1511_v4.simg"
+  )
+)
+
+DAG_object$create_node(
+  nodename = "MBG_predict",
+  jobscript = paste0(
+    core_repo, "mbg_central/LBDCore/demo/05_PM_MBGPredict.R"
+  ),
+  project = "proj_geospatial",
+  cores = 1,
+  ram_gb = 5,
+  runtime = "00:20:00",
+  queue = "all.q",
+  hold_job = "previous",
+  singularity_version = paste0(
+    "/ihme/singularity-images/lbd/",
+    "testing_INLA_builds/lbd_rpkgs3.6.0gcc9mkl",
+    "rstudioserver1.2.1511_v4.simg"
+  )
+)
+```
+
+The current state and full information about the DAG can be found in the `DAG`
+data.table embedded in the `MBGDag` object:
+```r
+> DAG_object$DAG
+        nodename node_counter                                                                                jobscript
+1:     data_prep            1  /share/code/geospatial/sadatnfs/lbd_core/mbg_central/LBDCore/demo/01_PM_Data_Prepping.R
+2:      stacking            2       /share/code/geospatial/sadatnfs/lbd_core/mbg_central/LBDCore/demo/02_PM_Stacking.R
+3: prep_for_INLA            3 /share/code/geospatial/sadatnfs/lbd_core/mbg_central/LBDCore/demo/03_PM_PrepForFitting.R
+4:   MBG_fitting            4     /share/code/geospatial/sadatnfs/lbd_core/mbg_central/LBDCore/demo/04_PM_MBGFitting.R
+5:   MBG_predict            5     /share/code/geospatial/sadatnfs/lbd_core/mbg_central/LBDCore/demo/05_PM_MBGPredict.R
+                                                                 job_name                                                            hold_on_job         project queue fthread
+1:     job_pmod_ken_0_0_data_prep_sadatnfs_2019_07_09_07_51_02_test_bhued                                                                   <NA> proj_geospatial all.q       1
+2:      job_pmod_ken_0_0_stacking_sadatnfs_2019_07_09_07_51_02_test_bhued     job_pmod_ken_0_0_data_prep_sadatnfs_2019_07_09_07_51_02_test_bhued proj_geospatial all.q       1
+3: job_pmod_ken_0_0_prep_for_INLA_sadatnfs_2019_07_09_07_51_02_test_bhued      job_pmod_ken_0_0_stacking_sadatnfs_2019_07_09_07_51_02_test_bhued proj_geospatial all.q       1
+4:   job_pmod_ken_0_0_MBG_fitting_sadatnfs_2019_07_09_07_51_02_test_bhued job_pmod_ken_0_0_prep_for_INLA_sadatnfs_2019_07_09_07_51_02_test_bhued proj_geospatial all.q       3
+5:   job_pmod_ken_0_0_MBG_predict_sadatnfs_2019_07_09_07_51_02_test_bhued   job_pmod_ken_0_0_MBG_fitting_sadatnfs_2019_07_09_07_51_02_test_bhued proj_geospatial all.q       1
+   m_mem_free     h_rt
+1:         4G 01:00:00
+2:         4G 00:10:00
+3:         4G 00:10:00
+4:         5G 00:20:00
+5:         5G 00:20:00
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                            qsub_str
+1:                                                                         qsub -e /share/geospatial/mbg/training/tr_had_diarrhea/output/sadatnfs_2019_07_09_07_51_02_test/errors -o /share/geospatial/mbg/training/tr_had_diarrhea/output/sadatnfs_2019_07_09_07_51_02_test/output -P proj_geospatial -N job_pmod_ken_0_0_data_prep_sadatnfs_2019_07_09_07_51_02_test_bhued -q all.q -cwd -l archive=TRUE -l m_mem_free=4G -l fthread=1 -l h_rt=00:01:00:00  -v sing_image=/ihme/singularity-images/lbd/testing_INLA_builds/lbd_rpkgs3.6.0gcc9mklrstudioserver1.2.1511_v4.simg -v SET_OMP_THREADS=1 -v SET_MKL_THREADS=1 -p 0  -hold_jid NA /share/code/geospatial/sadatnfs/lbd_core//mbg_central/share_scripts/shell_sing_argparse.sh /share/code/geospatial/sadatnfs/lbd_core/mbg_central/LBDCore/demo/01_PM_Data_Prepping.R --reg ken --age 0 --run_date sadatnfs_2019_07_09_07_51_02_test --holdout 0 --test FALSE --indicator tr_had_diarrhea --indicator_group training --nodename data_prep --dag_hash bhued
+2:                qsub -e /share/geospatial/mbg/training/tr_had_diarrhea/output/sadatnfs_2019_07_09_07_51_02_test/errors -o /share/geospatial/mbg/training/tr_had_diarrhea/output/sadatnfs_2019_07_09_07_51_02_test/output -P proj_geospatial -N job_pmod_ken_0_0_stacking_sadatnfs_2019_07_09_07_51_02_test_bhued -q all.q -cwd -l archive=TRUE -l m_mem_free=4G -l fthread=1 -l h_rt=00:00:10:00  -v sing_image=/ihme/singularity-images/lbd/testing_INLA_builds/lbd_rpkgs3.6.0gcc9mklrstudioserver1.2.1511_v4.simg -v SET_OMP_THREADS=1 -v SET_MKL_THREADS=1 -p 0  -hold_jid job_pmod_ken_0_0_data_prep_sadatnfs_2019_07_09_07_51_02_test_bhued /share/code/geospatial/sadatnfs/lbd_core//mbg_central/share_scripts/shell_sing_argparse.sh /share/code/geospatial/sadatnfs/lbd_core/mbg_central/LBDCore/demo/02_PM_Stacking.R --reg ken --age 0 --run_date sadatnfs_2019_07_09_07_51_02_test --holdout 0 --test FALSE --indicator tr_had_diarrhea --indicator_group training --nodename stacking --dag_hash bhued
+3: qsub -e /share/geospatial/mbg/training/tr_had_diarrhea/output/sadatnfs_2019_07_09_07_51_02_test/errors -o /share/geospatial/mbg/training/tr_had_diarrhea/output/sadatnfs_2019_07_09_07_51_02_test/output -P proj_geospatial -N job_pmod_ken_0_0_prep_for_INLA_sadatnfs_2019_07_09_07_51_02_test_bhued -q all.q -cwd -l archive=TRUE -l m_mem_free=4G -l fthread=1 -l h_rt=00:00:10:00  -v sing_image=/ihme/singularity-images/lbd/testing_INLA_builds/lbd_rpkgs3.6.0gcc9mklrstudioserver1.2.1511_v4.simg -v SET_OMP_THREADS=1 -v SET_MKL_THREADS=1 -p 0  -hold_jid job_pmod_ken_0_0_stacking_sadatnfs_2019_07_09_07_51_02_test_bhued /share/code/geospatial/sadatnfs/lbd_core//mbg_central/share_scripts/shell_sing_argparse.sh /share/code/geospatial/sadatnfs/lbd_core/mbg_central/LBDCore/demo/03_PM_PrepForFitting.R --reg ken --age 0 --run_date sadatnfs_2019_07_09_07_51_02_test --holdout 0 --test FALSE --indicator tr_had_diarrhea --indicator_group training --nodename prep_for_INLA --dag_hash bhued
+4:    qsub -e /share/geospatial/mbg/training/tr_had_diarrhea/output/sadatnfs_2019_07_09_07_51_02_test/errors -o /share/geospatial/mbg/training/tr_had_diarrhea/output/sadatnfs_2019_07_09_07_51_02_test/output -P proj_geospatial -N job_pmod_ken_0_0_MBG_fitting_sadatnfs_2019_07_09_07_51_02_test_bhued -q all.q -cwd -l archive=TRUE -l m_mem_free=5G -l fthread=3 -l h_rt=00:00:20:00  -v sing_image=/ihme/singularity-images/lbd/testing_INLA_builds/lbd_rpkgs3.6.0gcc9mklrstudioserver1.2.1511_v4.simg -v SET_OMP_THREADS=3 -v SET_MKL_THREADS=3 -p 0  -hold_jid job_pmod_ken_0_0_prep_for_INLA_sadatnfs_2019_07_09_07_51_02_test_bhued /share/code/geospatial/sadatnfs/lbd_core//mbg_central/share_scripts/shell_sing_argparse.sh /share/code/geospatial/sadatnfs/lbd_core/mbg_central/LBDCore/demo/04_PM_MBGFitting.R --reg ken --age 0 --run_date sadatnfs_2019_07_09_07_51_02_test --holdout 0 --test FALSE --indicator tr_had_diarrhea --indicator_group training --nodename MBG_fitting --dag_hash bhued
+5:      qsub -e /share/geospatial/mbg/training/tr_had_diarrhea/output/sadatnfs_2019_07_09_07_51_02_test/errors -o /share/geospatial/mbg/training/tr_had_diarrhea/output/sadatnfs_2019_07_09_07_51_02_test/output -P proj_geospatial -N job_pmod_ken_0_0_MBG_predict_sadatnfs_2019_07_09_07_51_02_test_bhued -q all.q -cwd -l archive=TRUE -l m_mem_free=5G -l fthread=1 -l h_rt=00:00:20:00  -v sing_image=/ihme/singularity-images/lbd/testing_INLA_builds/lbd_rpkgs3.6.0gcc9mklrstudioserver1.2.1511_v4.simg -v SET_OMP_THREADS=1 -v SET_MKL_THREADS=1 -p 0  -hold_jid job_pmod_ken_0_0_MBG_fitting_sadatnfs_2019_07_09_07_51_02_test_bhued /share/code/geospatial/sadatnfs/lbd_core//mbg_central/share_scripts/shell_sing_argparse.sh /share/code/geospatial/sadatnfs/lbd_core/mbg_central/LBDCore/demo/05_PM_MBGPredict.R --reg ken --age 0 --run_date sadatnfs_2019_07_09_07_51_02_test --holdout 0 --test FALSE --indicator tr_had_diarrhea --indicator_group training --nodename MBG_predict --dag_hash bhued
+   status job_id   parent_node
+1:   <NA>     NA          <NA>
+2:   <NA>     NA     data_prep
+3:   <NA>     NA      stacking
+4:   <NA>     NA prep_for_INLA
+5:   <NA>     NA   MBG_fitting
+```
+
+The columns in the DAG table are as follows:
+
+1. `nodename`: Name of the node
+2. `node_counter`: An auto-incrementing counter denoting the node number
+3. `jobscript`: The path to the R script
+4. `job_name`: The name of the job to be used in the qsub
+5. `hold_on_job`: The *name of the job* to hold on
+6. `project`: Cluster project
+7. `queue`: Cluster queue
+8. `fthread`: Number of cores requested
+9. `m_mem_free`: Amount of memory requested
+10. `h_rt`: Run-time requested
+11. `qsub_str`: The full qsub string which will be submitted to the cluster
+12. `status`: Current job status of the node
+13. `job_id`: Job ID of the node
+14. `parent_node`: The parent nodename (as opposed to job name in `hold_on_job`)
+
+Every time we add a node with the `create_dag()` method, a new row will be added
+to this DAG data.table. The `status` and `job_id` columns are set to `NA` to
+start with, since we haven't interfaced with the cluster yet.
+
+We then go on to save the DAG object in the "run-date"-region-age-holdout-test
+specific file, the path of which is stored in `img_path`:
+```r
+## Save DAG
+print(
+  paste0(
+    "Saving DAG for row: ", r, " in LV table to:",
+    DAG_object$get_prerun_image_path(file_format = ".rds")
+  )
+)
+saveRDS(object = DAG_object, file = DAG_object$img_path)
+> DAG_object$img_path
+[1] "/share/geospatial/mbg/training/tr_had_diarrhea/model_image_history/DAG_sadatnfs_2019_07_09_07_51_02_test_bin0_ken_0.rds"
+```
+
+
+# Submitting and Waiting on Jobs
+
+Once a node has been added to the DAG, we can submit that job right away if we
+desired. The method `submit_jobs(nodename)` will submit the job for the
+specified `nodename` in the DAG, for e.g.:
+```r
+> DAG_object$submit_jobs(nodename = "data_prep")
+Your job 7275813 ("job_pmod_ken_0_0_data_prep_sadatnfs_2019_07_09_07_51_02_test_bhued") has been submitted
+```
+Once we have submitted a node, we can find the job ID associated with that node.
+The DAG gets updated in the backend with the job `status` and `job_id`:
+```r
+> DAG_object$DAG[nodename == "data_prep", .(nodename, status, job_id)]
+    nodename    status  job_id
+1: data_prep submitted 7275813
+```
+As this job runs, the method `wait_on_node(nodename)` can be used to track the
+job. Once the job finishes running, using some simple empty-file logic named
+with the job ID, `wait_for_node(nodename)` will find whether the job ran through
+successfully or
+not, and will update the job status.
+```r
+> DAG_object$wait_on_node("data_prep")
+[1] "The following job IDs are still in qstat:"
+[1] 7275813
+[1] "Continue to sleep.... It's 2019-07-09 08:10:00"
+[1] "The following job IDs are still in qstat:"
+[1] 7275813
+[1] "Continue to sleep.... It's 2019-07-09 08:11:41"
+[1] "Job IDs not found in qstat. Checking for completion..."
+[1] 7275813
+Job successfully finished.
+[1] "Updating the node data_prep with status: finished"
+[1] 0
+```
+
+Now we can see that the `data_prep` node finished successfully and the DAG has
+been updated:
+```r
+>  DAG_object$DAG[nodename == "data_prep", .(nodename, status, job_id)]
+    nodename   status  job_id
+1: data_prep finished 7275813
+```
+
+Given that there exists a serial dependency on each node, if one node in the DAG
+failed to finish successfully, then all other subsequent child nodes would also
+fail (and there's a parent environment existence done in each of the script to
+test for this.)
+
+Alternatively, what we do in `main.R` is: instead of submitting each node at a
+time, we submit all the jobs to be queued up and the child nodes with
+dependencies will be in `hqw` (hold) status in UGE until its parent node has
+finished running.
+
+Similarly, passing no nodes to the `wait_on_node` method will also hold on every
+job in the DAG.
+
+```r
+## Submit everything in the DAG, and wait until finish
+> DAG_object$submit_jobs()
+Your job 7276313 ("job_pmod_ken_0_0_data_prep_sadatnfs_2019_07_09_07_51_02_test_bhued") has been submitted
+Your job 7276316 ("job_pmod_ken_0_0_stacking_sadatnfs_2019_07_09_07_51_02_test_bhued") has been submitted
+Your job 7276318 ("job_pmod_ken_0_0_prep_for_INLA_sadatnfs_2019_07_09_07_51_02_test_bhued") has been submitted
+Your job 7276321 ("job_pmod_ken_0_0_MBG_fitting_sadatnfs_2019_07_09_07_51_02_test_bhued") has been submitted
+Your job 7276323 ("job_pmod_ken_0_0_MBG_predict_sadatnfs_2019_07_09_07_51_02_test_bhued") has been submitted
+```
+
+The location of the DAG's stderr and stdoutput files can be found in these
+constants `error_log_dir` and `output_log_dir` in the DAG object:
+```r
+> DAG_object$error_log_dir
+[1] "/share/geospatial/mbg/training/tr_had_diarrhea/output/sadatnfs_2019_07_09_07_51_02_test/errors"
+> DAG_object$output_log_dir
+[1] "/share/geospatial/mbg/training/tr_had_diarrhea/output/sadatnfs_2019_07_09_07_51_02_test/output"
+```
+
+Now, let's keep waiting on the jobs. Job completion will be checked for every
+100 seconds by default.
+```r
+> DAG_object$wait_on_node()
+[1] "The following job IDs are still in qstat:"
+[1] 7276313
+[1] "Continue to sleep.... It's 2019-07-09 08:22:47"
+[1] "Job IDs not found in qstat. Checking for completion..."
+[1] 7276313
+Job successfully finished.
+[1] "Updating the node data_prep with status: finished"
+[1] "The following job IDs are still in qstat:"
+[1] 7276316
+[1] "Continue to sleep.... It's 2019-07-09 08:24:30"
+[1] "Job IDs not found in qstat. Checking for completion..."
+[1] 7276316
+Job successfully finished.
+[1] "Updating the node stacking with status: finished"
+[1] "Job IDs not found in qstat. Checking for completion..."
+[1] 7276318
+Job successfully finished.
+[1] "Updating the node prep_for_INLA with status: finished"
+[1] "The following job IDs are still in qstat:"
+[1] 7276321
+[1] "Continue to sleep.... It's 2019-07-09 08:26:15"
+[1] "The following job IDs are still in qstat:"
+[1] 7276321
+[1] "Continue to sleep.... It's 2019-07-09 08:27:56"
+[1] "The following job IDs are still in qstat:"
+[1] 7276321
+[1] "Continue to sleep.... It's 2019-07-09 08:29:39"
+[1] "Job IDs not found in qstat. Checking for completion..."
+[1] 7276321
+Job successfully finished.
+[1] "Updating the node MBG_fitting with status: finished"
+[1] "The following job IDs are still in qstat:"
+[1] 7276323
+[1] "Continue to sleep.... It's 2019-07-09 08:31:25"
+[1] "The following job IDs are still in qstat:"
+[1] 7276323
+[1] "Continue to sleep.... It's 2019-07-09 08:33:09"
+[1] "The following job IDs are still in qstat:"
+[1] 7276323
+[1] "Continue to sleep.... It's 2019-07-09 08:34:53"
+[1] "The following job IDs are still in qstat:"
+[1] 7276323
+[1] "Continue to sleep.... It's 2019-07-09 08:36:35"
+[1] "Job IDs not found in qstat. Checking for completion..."
+[1] 7276323
+Job successfully finished.
+[1] "Updating the node MBG_predict with status: finished"
+[1] 0
+```
+
+Don't forget to save the DAG file!
+```r
+saveRDS(object = DAG_object, file = DAG_object$img_path)
+```
+
+If a DAG in the job died, then that node will have the status `errored` in the
+DAG data.table, and you can look at the job error/output logs to see why it
+failed to finish successfully.

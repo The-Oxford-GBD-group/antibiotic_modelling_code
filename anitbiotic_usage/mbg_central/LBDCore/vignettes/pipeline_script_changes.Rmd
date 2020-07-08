@@ -1,0 +1,159 @@
+---
+title: "Pipeline Script Changes"
+output:
+  html_document:
+    number_sections: true
+    css: pipeline_style.css
+    # theme: darkly
+    highlight: tango
+fontsize: 12pt
+geometry: margin=1in
+vignette: >
+  %\VignetteIndexEntry{PipelineChanges}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+  
+```{r setup, include = FALSE}
+knitr::opts_chunk$set(
+  collapse = TRUE,
+  comment = "#>"
+)
+```
+
+In order to make scripts in a DAG trackable and sequential, we need to need a
+bunch of `ONE WEIRD TRICK`s to make it work. For each of the nodes in our
+example DAG, there's a few extra pieces of code we put in to make the DAG work.
+
+# Preamble
+
+We have a new function `pipeline_preamble()` in the LBDCore package. The only
+argument it takes is a boolean `headnode`, which should be set to `TRUE` only
+in the first node of the DAG, and `FALSE` (default) otherwise. The contents of
+this function is as follows, along with description:
+
+1. We parse the argparse arguments from the qsub string, and set them as
+constants in the global environment. We additionally load the DAG object saved
+out in `main.R` and assign it to an object named `DAG_obj`.
+```r
+assign("DAG_obj", setup_parallel_model_inputs(
+  load_prerun_image = TRUE,
+  use_argparse = TRUE
+), envir = .GlobalEnv)
+```
+
+2. We create an empty file `JOBID_start` in the temporary directory specified
+in the DAG object with the function `mbg_job_marker()`. This will notify that
+the job started off successfully.
+```r
+## Set up job tmpdir and create start file in temp directory defined in DAG
+mbg_job_marker(type = "start", tmpdir = DAG_obj$tmpdir)
+```
+
+3. If we are not in a parent node, then we need to pull in the environments
+saved out from *all* parent nodes.
+
+We also record the names of the objects in the environment as of this moment
+(the start of the script) and store it in a vector `current_env`.
+```r
+## If not head node, then do all this below:
+if (!headnode) {
+
+  ## Get parent nodenames name and the environment saved from parent jobs
+  assign("parent_nodename",
+    DAG_obj$get_all_parent_nodes(
+      name = nodename
+    ),
+    envir = .GlobalEnv
+  )
+...
+```
+
+4. Finally, `mbg_get_nodeenv()` will get the environment from the node names
+specified.
+```r
+...
+  mbg_get_nodeenv(
+    node = parent_nodename,
+    ig = indicator_group,
+    indic = indicator,
+    rd = run_date,
+    reg = reg,
+    age = age,
+    holdout = holdout
+  )
+
+  ## Take note of the current state of the environment (to use as diff-loading)
+  assign("current_env", ls(envir = .GlobalEnv), envir = .GlobalEnv)
+
+}
+```
+
+# Postamble
+
+Similar to the preamble, we have a new function `pipeline_postamble()` to finish
+off the script. The two arguments it takes are a boolean `headnode`, which should
+be set to `TRUE` only in the parent node of the DAG, and `FALSE` (default)
+otherwise, and `addl_objs_to_save` which we talk about down below. The contents
+of this function is as follows, along with description:
+
+1. We get the path to the temporary directory to save out our end job marker in.
+```r
+## Temp variable for end job marker
+end_marker <- DAG_obj$tmpdir
+```
+
+2. We remove the DAG object from the environment, because we don't want to save
+that out in the environment (the DAG object is maintained from the main script).
+```r
+## Save out environment, without the DAG
+rm(DAG_obj, envir = .GlobalEnv)
+```
+3. *IMPORTANT*: We make note of the names of the objects in the global
+environment, and get a `setdiff` from the `current_env` vector saved out
+at the beginning of the script. This will tell us exactly which objects got
+created in this script compared to the parent environments.
+```r
+## Resolve object names
+if (headnode) {
+  objs_to_save <- ls(envir = .GlobalEnv)
+} else {
+  objs_to_save <- setdiff(ls(envir = .GlobalEnv), current_env)
+}
+```
+
+4. If the user wants to save additional objects to save out *on top of* the
+objects from the diff in the previous step (for e.g. *for mutated objects*),
+then they have to pass a vector of strings in the parameter `addl_objs_to_save`.
+This is necessary in the INLA prepping node where the data.table `df` is changed
+along with some other objects.
+```r
+## If the user wants to add more objects to be saved out,
+## then we concatenate that with `objs_to_save`, and call
+## `unique`
+if (!is.null(addl_objs_to_save)) {
+  objs_to_save <- unique(
+    c(objs_to_save, addl_objs_to_save)
+  )
+}
+...
+```
+
+5. Save out the environment Rdata file for this node and the objects to save,
+and record the job marker `JOBID_end`.
+```r
+...
+mbg_save_nodeenv(
+  node = nodename,
+  ig = indicator_group,
+  indic = indicator,
+  rd = run_date,
+  reg = reg,
+  age = age,
+  holdout = holdout,
+  objs = objs_to_save
+)
+
+## Create output file and remove err file ##
+mbg_job_marker(type = "end", tmpdir = end_marker)
+```

@@ -1,0 +1,100 @@
+Package: LBDCore
+Type: Package
+Title: Local Burden of Disease Core Code Repository
+Description: Local Burden of Disease Core Code Repository
+Version: 1.0
+Date: 2019-06-25
+Authors@R: c(person("Nafis","Sadat",role=c("aut","cre"), email="sadatnfs@uw.edu"),
+             person("Michael","Richards",role=c("aut"), email="miker985@uw.edu"),
+             person("Aaron","Osgood-Zimmerman",role=c("aut"), email="azimmer@uw.edu"),
+             person("Roy","Burstein",role=c("aut"), email="royburst@uw.edu"),
+             person("Lauren","Woyczynski",role=c("aut"), email="lpw3@uw.edu"),
+             person("Ian", "Davis",role=c("aut"), email="imdavis@uw.edu"),
+             person("Jon", "Mosser",role=c("aut"), email="jmosser@uw.edu"),
+             person("Michael", "Cork",role=c("aut"), email="mcork23@uw.edu"),
+             person("John", "VanderHeide",role=c("aut"), email="jdv6@uw.edu"),
+             person("Michael", "Collison",role=c("aut"), email="mlc314@uw.edu"),
+             person("Nat", "Henry",role=c("aut"), email="nathenry@uw.edu"),
+             person("Katie", "Wilson",role=c("aut"), email="wilsonkl@uw.edu"),
+             person("Neal", "Marquez",role=c("aut"), email="nmarquez@uw.edu")
+             )
+License: GPL (>= 2)
+Encoding: UTF-8
+Depends:
+    R (>= 3.5.0),
+    data.table,
+    seegSDM,
+    seegMBG,
+    boot,
+    rgdal,
+    stats,
+    zoo,
+    tidyr,
+    plyr,
+    stringr,
+    stringi,
+    glue,
+    earth,
+    akima,
+    shapefiles,
+    ggrepel,
+    glue,
+    DBI,
+    RSQLite,
+    gridExtra,
+    grid,
+    raster,
+    utils,
+    matrixStats,
+    sf,
+    INLA,
+    plotrix,
+    dplyr,
+    weights,
+    rgdal,
+    rgeos,
+    ggplot2,
+    sp,
+    scales,
+    TMB,
+    fields,
+    Hmisc,
+    png,
+    glmnet,
+    foreign,
+    haven, 
+    lwgeom,
+    mgcv,
+    parallel,
+    doParallel,
+    foreach,
+    snow,
+    doSNOW,
+    tictoc,
+    assertthat,
+    versions,
+    devtools,
+    pacman,
+    mgcv,
+    withr,
+    RMySQL,
+    gbm,
+    dismo,
+    tictoc,
+    xgboost,
+    caret,
+    DT,
+    magrittr,
+    RColorBrewer,
+    forecast,
+    R6,
+    R.oo,
+    argparse
+Suggests:
+    knitr,
+    rmarkdown
+LinkingTo: TMB, Rcpp, RcppEigen
+RoxygenNote: 6.1.1
+VignetteBuilder: knitr
+LazyData: true
+NeedsCompilation: yes

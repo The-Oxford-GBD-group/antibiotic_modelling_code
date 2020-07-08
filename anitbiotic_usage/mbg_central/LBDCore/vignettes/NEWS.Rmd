@@ -1,0 +1,116 @@
+---
+title: "Changelog"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{Changelog}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+```{r setup, include = FALSE}
+knitr::opts_chunk$set(
+  collapse = TRUE,
+  comment = "#>"
+)
+```
+
+
+# July 9th, 2019
+
+* The new MBG pipeline rewrite scripts exist now in the develop branch! The documentation can be found
+from the top drop-down panel *MBG Pipeline*.
+
+# July 5th, 2019
+
+* NEAL ADD NEWS HERE ABOUT TIME STATIONARY GP PLEASE
+
+# July 1st, 2019
+
+## Covariate loader added
+
+* No action is required on your part to use these changes.  
+
+* The main configuration arguments `fixed_effects` and `fixed_effects_measures` are deprecated, so you should not use them anymore. Per previous discussions it looks like everyone has moved to specifying a *covariate configuration file* (which is what we'd prefer you do) so this is not anticipated to be an issue.  
+
+* Users can add a *release* column to specify the covariate release.  
+
+* Here is an example file without updating. This will continue to work as-is, and will default to using the *newest release* for each covariate/measure pair https://stash.ihme.washington.edu/projects/GEOSP/repos/lbd_core/browse/training/covs_training.csv.  
+
+* Releases are meant to resemble `YYYY_MM_DD` e.g., `2019_06_10`.
+
+* Most covariates have a release of `2019_06_10`. The exception is worldpop which uses `2017_04_27`.
+
+* Users may set *some but not all* covariate releases. Those set will only use that version, those unset will use the newest version.  
+
+Loading covariates has changed slightly. Here is a full example:
+
+```r
+# year_list, interval_mo, and fixed_effects_config will be present
+# in your global environment after calling set_up_config
+
+year_list <- c(2000:2015)
+interval_mo <- 12
+fixed_effects_config <- data.table(
+    covariate = c("access", "evi"),
+    measure = c("mean", "median"),
+    gbd = c(FALSE, FALSE),
+    include = c(TRUE, TRUE),
+    release = c("2019_06_10", "2019_06_10")
+)
+
+# cov_layers will be identical to load_and_crop_covariates_annual, except it incorporates covariate releases
+loader <- MbgStandardCovariateLoader$new(
+    start_year = min(year_list),
+    end_year = max(year_list),
+    interval = interval_mo,
+    covariate_config = fixed_effects_config)
+cov_layers <- loader$get_covariates(simple_polygon)
+```
+
+
+
+
+
+# May 31st, 2019
+
+* Stacking functions now have a full run function (`run_child_stackers`) which is what the parallel model scripts are pointed to now, instead of sourcing a script to run child stackers.
+
+* `gam_stacker` is deprecated for good.
+
+* Both `parallel_model.R` and `parallel_model_pkgtest.R` now has the new stacking functions. The `diff` that would be relevant for you to review would be [here](https://stash.ihme.washington.edu/projects/GEOSP/repos/lbd_core/commits/a555c0f3466c85e7587899e762551e979044442e#mbg_central/share_scripts/parallel_model.R) (319-332).
+
+* There is also a small snippet of code I added in lines 557-572 in the script above to make sure that the number of OMP and MKL threads are properly parsed in before calling INLA. Speaking of:
+
+## IMPORTANT NOTE on PARALLEL THREADING 
+I would like to point out that by default, Singularity does not parse in environment variables without forcing things through, and therefore, in order to truly use parallelized fitting in INLA with OMP and MKL threading, you *must* pass in a list to the `singularity_opts` parameter in `make_qsub_share`, like such: `singularity_opts = list(SET_OMP_THREADS=number_of_fthread, SET_MKL_THREADS=number_of_fthread)`. Documentation for that is [here](http://sandbox-web.ihme.washington.edu/~miker985/LBDCore/reference/make_qsub_share.html). The cluster will allocate MKL and OMP threads equivalent to the number of fthreads supplied in your job, and so you can have that added in to your `make_qsub_share` safely. There’s currently a PR in works to pass the OMP and MKL threads to be equal to the number of cores requested by default. Once that is merged in, the parallelizing behavior will be as expected by default.
+
+
+
+# May 20th, 2019
+
+* Logit raking can be done in fractional raking now.
+
+* The new PARDISO solver is now available for modelers to use. Large regions can use multiple threads now, and speedup has shown to be quite significant (a 3-day model can take as little as 8 hours to run). Usage is FREE but requires registration - see [here](https://pardiso-project.org/r-inla/). The two things you need to do are:
+1. Get a license and add one line to your code: `inla.setOption("pardiso.license", "/path/to/your-license.lic")`.  
+2. Make sure you're using the latest development Singularity images, located in `/share/singularity-images/lbd/testing_INLA_builds/`. You would need to set the `singularity` parameter in your qsub making functions to point to the full path of the image.
+
+Some success stories have been recorded in history so far; week-long models are finishing in days/hours now, which is great.
+
+
+# April 30th, 2019
+
+* Fractional raking and aggregation is implemented as part of post-estimation. After pulling in the latest state of the develop branch, the only changes that needs to be made for run-time are a few config arguments (which has defaults set), and a few parts regarding the post-estimation part of your launch script.
+
+* No changes are needed for parallel model script, only the post-estimation script. The generalized post-estimation script with fractional raking (which should be pointed to in your `make_qsub_postest` is located [here](https://stash.ihme.washington.edu/projects/GEOSP/repos/lbd_core/browse/mbg_central/share_scripts/postest_frax_script.R)
+
+* All the necessary changes to move from legacy raking to fractional raking are documented [here](http://sandbox-web.ihme.washington.edu/~miker985/LBDCore/articles/fractional_raking_migration.html). An example full run script (launch) using fractional raking is located [here](https://stash.ihme.washington.edu/projects/GEOSP/repos/lbd_core/browse/mbg_central/LBDCore/testing_models/launch_with_fractional_raking.R?).
+
+* The config arguments needed to control raking are: `rake_countries`, `rake_subnational`, `countries_not_to_rake`, `countries_not_to_subnat_rake` and `metric_space`. Information on what they are (and default to) can be found [here](http://sandbox-web.ihme.washington.edu/~miker985/LBDCore/articles/config_descriptions.html).
+
+
+
+# Further past updates.
+
+* All instances of `rasterize()` has been changed to use `rasterize_check_coverage()`, which uses the link table to assign locations to pixels. This will allow for capturing any pixels left behind on coastlines and between country borders.
+
+* `rake_cell_pred` has implemented some fixes for when raking and master rasters don't line up.

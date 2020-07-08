@@ -1,0 +1,208 @@
+---
+title: "MBGPipeline"
+output:
+  html_document:
+    number_sections: true
+    css: pipeline_style.css
+    # theme: darkly
+    highlight: tango
+fontsize: 12pt
+geometry: margin=1in
+vignette: >
+  %\VignetteIndexEntry{MBGPipelineTutorial}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+```{r setup, include = FALSE}
+knitr::opts_chunk$set(
+  collapse = TRUE,
+  comment = "#>"
+)
+```
+
+This document will go through the first part of the `main.R` script and what
+each element in the snippet does. This will only deal with setting up an
+`MBGPipeline` object.
+
+The first section points to your the preamble setup prior to running any scripts
+in the pipeline. This is the same as what was noted in the previous vignette.
+
+```{r preamble, eval = FALSE}
+## Point to personal directory (create if needed)
+personal_lib <- sprintf(
+  "~/R/x86_64-pc-linux-gnu-library/%s.%sgeo/",
+  R.Version()$major, R.Version()$minor
+)
+Sys.setenv(R_LIBS_USER = personal_lib)
+if (!dir.exists(personal_lib)) dir.create(personal_lib, recursive = TRUE)
+
+## Set up .libPaths()
+.libPaths(c(Sys.getenv("R_LIBS_USER"), .libPaths()))
+
+## Set up MKLROOT directory (needed if using RStudio)
+Sys.setenv(MKLROOT = "/opt/intel/compilers_and_libraries/linux/mkl")
+
+## Load the LBDCore library
+## The `suppressMessages()` is there just to remove all the intermediate
+## packages' loading messages.
+suppressMessages(library(LBDCore))
+
+## Load colorout for nice colored terminal output
+library(colorout)
+```
+
+
+# MBGPipeline
+
+We create a Pipeilne by creating an
+[MBGPipeline](http://sandbox-web.ihme.washington.edu/~miker985/LBDCore/reference/MBGPipeline.html)
+object. `MBGPipeline` is an `R6::R6Class` which can be used to make an
+`MBGPipeline` object. We chose `R6Class` as the structure to go with because
+it's super intuitive and similar to Python's classes, and allows for better
+compatibility moving forward since `R6` is the future of OOP in R.
+
+
+# Creating a Pipeline object
+
+We first set some baseline contants which is needed to create an `MBGPipeline`
+object (initializng a class). The inputs needed to initialize an `MBGPipeline`
+object are as follows:
+
+1. `core_repo`: the path to the core repository (to be deprecated in the future)
+2. `indicator_group`: the indicator group (e.g. `training`)
+3. `indicator`: the indicator being modeleed (e.g. `tr_had_diarrhea`)
+4. `config_file` or `config_name`: either the full path to the config file
+(which is preferred) or the name of a config CSV which uses relative paths.
+`config_file` take precedence over `config_name`.
+5. `covs_file` or `covs_name`: either the full path to the covariates
+config file (which is preferred) or the name of a covariates config CSV
+which uses relative paths. `covs_file` take precedence over `covs_name`.
+6. (Optional) `run_date`: a run-date that can be used to initialize the pipeline
+which can be a previously created run-date. If this is not specified, then the
+user has the option to create their own run-date with a method later on shown.
+
+We create the initializing parameters and store them in constants as below:
+
+```{r init_params}
+core_repo <- sprintf("/share/code/geospatial/%s/lbd_core/",
+                     Sys.info()["user"])
+ig <- "training"
+indic <- "tr_had_diarrhea"
+config <- paste0(core_repo, "training/config_training_pipeline.csv")
+covs  <- paste0(core_repo, "training/covs_training.csv")
+```
+
+Now we create an `MBGPipeline` object with the `new()` method, and call it
+`Pipeline_Class`:
+
+```{r make_mbgpipeline, eval = FALSE}
+Pipeline_Class <- MBGPipeline$new(
+  core_repo = core_repo,
+  indicator_group = ig,
+  indicator = indic,
+  config_file = config,
+  covs_file = covs
+)
+```
+The `print()` method on the `MBGPipeline` class will print the 5 core inputs
+used to create the pipeline:
+
+```{r print_pipe, eval = FALSE}
+print(Pipeline_Class)
+MBG Pipeline: 
+  Repo Path        :  /share/code/geospatial/sadatnfs/lbd_core/
+  Indicator Group  :  training
+  Indicator        :  tr_had_diarrhea
+  Model Path       :  /share/code/geospatial/sadatnfs/lbd_core/training/config_training_pipeline.csv
+  Covs Path        :  /share/code/geospatial/sadatnfs/lbd_core/training/covs_training.csv
+```
+
+
+# Configuration and Run-Date Setup
+
+Next, once initialized, we set up our config parameters. The method `setup_conf`
+will parse the config and covariates CSVs, run assertion tests on them, and will
+also save the parameters in the global environment if desired (which was the
+default behavior with the usual MBG pipeline but have since not advised to do
+so). The default parameters are `push_to_global_env` set to `FALSE` (having
+this set to `TRUE` will mimic the original MBG environment where all the config
+parameters are thrown into the global environment), and `run_tests` set to
+`TRUE` which are needed for testing each configuration parameter.
+
+```{r setupconf, eval = FALSE}
+Pipeline_Class$setup_conf(
+  push_to_global_env = FALSE,
+  run_tests = TRUE
+)
+```
+Config tests are mostly done to check whether the types of the parameters are
+properly specified, and whether numerical parameters are within the acceptable
+inputs. This function will also resolve the shapefile version datestamps if the
+config file has the string `current` for the shapefile versions (which is
+meant to pull in the latest version of the shapefiles).
+
+We then set up a run-date, which is the main identifier for an MBGPipeline run.
+If no `run_date` parameter is specified as a custom input, then the current
+datestamp is used as the run-date. Additionally, optional `prefix` and `suffix`
+parameters can be used to add to the run-date string created. Finally,
+`full_cleanup` is used to **completely nuke a run-date** if desired. This option
+is helpful if you want to work on a specific run-date string but would like to
+delete all the previous run files in that folder. Don't do it unless you're bold
+enough.
+
+```{r setuprun, eval = FALSE}
+Pipeline_Class$setup_rundate(
+  prefix = paste0(Sys.info()["user"], "_"),
+  suffix = "_test",
+  full_cleanup = FALSE
+)
+```
+
+# Holdouts and loopvars table
+
+Finally, to close out our `MBGPipeline` class introduction, we go on to create
+holdout folds and the list of jobs we will run. If the `makeholdouts` parameter
+in the config file was set to `TRUE` and `n_ho_folds` has a non-zero integer
+value, then this function will create the holdout folds on the input data.
+Otherwise, no holdouts are created (assigning a value of `0` to the holdouts)
+and therefore the full dataset is used to run the model.
+
+```{r makeho, eval = FALSE}
+Pipeline_Class$make_holdouts()
+```
+
+We create a `loopvars` table next which contains the columns for each region,
+age group and holdouts. Each row in the table will determine how many individual
+[MBGDag](http://sandbox-web.ihme.washington.edu/~miker985/LBDCore/reference/MBGDag.html)
+objects will be made and tracked.
+
+```{r lv, eval = FALSE}
+Pipeline_Class$create_loopvars()
+```
+
+The loopvars table for the training pipeline, which models over three regions,
+one age group and no holdouts (hence just the full dataset), will have three
+rows of data:
+```r
+> Pipeline_Class$loopvars
+   region age holdout
+1:    ken   0       0
+2:    uga   0       0
+3:    tza   0       0
+```
+
+Next, we move on to create the DAGs for each row of the loopvars table, in the
+`MBGDag` tutorial.
+
+<!-- ## Blurb on INLA model -->
+
+<!-- The main model in the MBG pipeline is a regression of the following form: -->
+
+<!-- $$\begin{array}{cl} -->
+<!-- Y_{i,t} &\sim \text{Binomial}\left(p_{i,t}, N_{i,t} \right)\\ -->
+<!-- \text{logit}(p_{i,t}) &= \beta_0 + \beta_1 X_{i,t} + \gamma_{c[i]} + Z_{i,t} + \epsilon_{i,t} \\ -->
+<!-- \gamma_{c[i]} &\sim \mathcal{N}\left(0, \sigma^2_{country} \right) \\ -->
+<!-- Z_{i,t} &\sim \mathcal{GP}\left(0, \Sigma_{space} \otimes \Sigma_{t} \right) \\ -->
+<!-- \epsilon_{i,t} &\sim \mathcal{N}\left(0, \sigma^2_{nugget} \right) -->
+<!-- \end{array}$$ -->

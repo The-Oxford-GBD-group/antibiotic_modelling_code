@@ -1,0 +1,53 @@
+---
+title: "Function Updates"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{Function Updates}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+```{r setup, include = FALSE}
+knitr::opts_chunk$set(
+  collapse = TRUE,
+  comment = "#>"
+)
+```
+
+## Updating existing functions
+
+All functions used in `LBDCore` are located in the `R` folder under `mbg_central/LBDCore`. Here are the following steps needed to update an existing function:
+
+1. Make changes to the function you'd like to update in `LBDCore/R` *and* in the respective functions script in `mbg_central`. A simple `diff` will allow you to look at the changes that you'd need to make in either one of the two, if you have only been working off of one of them.  
+2. Make sure that all the roxygen fields are updated (`@title`, `@description`, `@param`, `@export` and `@return`). Adding `@examples` is encouraged.  
+3. Run `roxygen2::roxygenise('/path/to/LBDCore/')` in order to update the package documentation.  
+4. *Style* the new `.R` script using `styler::style_file("/path/to/function.R")`. The `styler` package can be found in the latest development Singularity images (using `R 3.5.3` and above).
+5. Create pull request.  
+6. Ping `@Nafis Sadat` to update documentation in sandbox.  
+
+
+## Adding a new function
+
+1. The new function must be added as its own file in the `LBDCore/R` folder.  
+2. If you don't have any initial docstrings, then you can auto-generate roxygen fields using `sinew::makeOxyFile(your_function.R, overwrite = TRUE)`.  
+3. Update all the docstrings with relevant and helpful information.
+4. Open `_pkgdown.yml` in the root of `LBDCore` and add your function to the relevant sub-section.
+5. Follow steps 4, 5 and 6 from above.
+
+
+## Adding data objects
+
+1. If you would like to have any data that's relevant to your function, start by saving out the data object (with the name of your choosing, call it `data_name`) as an `.rda` file in `LBDCore/data`.  
+2. Edit the `data.R` script in `LBDCore/R` and add documentation for your data object, as such:
+```r
+#' @title Title of your dataset
+#' @description Description
+#' @examples
+#' \dontrun{
+#' data(data_name)
+#' }
+"data_name"
+```
+This is necessary for your data object to be able to be called from your function.  
+3. Now you can load your data object in your function with `data(data_name)`.
+4. Follow steps 4 and 5 from the first section.
