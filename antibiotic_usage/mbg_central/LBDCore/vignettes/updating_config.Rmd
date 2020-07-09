@@ -1,0 +1,59 @@
+---
+title: "Configuration Updates"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{Configuration Updates}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+```{r setup, include = FALSE}
+knitr::opts_chunk$set(
+  collapse = TRUE,
+  comment = "#>"
+)
+```
+
+# Adding or Updating Configuration Parameters
+
+Here are the steps to follow if you were to update or add configuration parameters. First we update all the necessary data files, and then we update the functions that call the configs.
+
+## Data files
+
+1. Navigate to the folder `mbg_central/share_scripts/common_inputs`.  
+2. Append your new configuration parameter in the csv `config_must_haves.csv` as a new line at the end of the file.  
+3. Open `config_values.csv`, possibly in `R` directly, and add a new *column* for the configuration parameter you want to add in its respective type. And then, reorder the column in alphabetical order (which can be achieved with `setcolorder(config_values, colnames(config_values)))`, assuming that you're using `data.table` and read in the CSV as a data frame called `config_values`.  
+4. Open `config_description.csv`, possibly in `R` directly, and add a new *row* with the following information for the new row:
+  - Name of the config parameter you want under `variable`  
+  - Default value of the config parameter under `default_value`, in string  
+  - A concise description under `description`, which must include the type of the parameter expected, along with the explanation.  
+5. Open `config_tests.csv`, possibly in `R` directly, and add a new *row* with the following information for the new row:
+  - Name of the config parameter you want under `variable`.  
+  - The tests you want to assert on the config parameter under `test_call`. The value entered will be available via `eval(parse(text = config[V1 == 'NAME_OF_CONFIG_PARAM', V2]))` so your test function should wrap that. For example, to ensure it is a boolean flag use `is.flag`.  
+  - Any additional tests you'd like under `extra_test1` and `extra_test2`, following the syntax in the bullet above for `test_call`.  
+The tests can be kept as empty strings, but it's *VERY* encouraged to add in a test for your parameter.
+6. Now, along with saving the CSVs out, please save each of the four `config_*` CSVs you opened above as `rda` files in the folder: `mbg_central/LBDCore/data`.  
+*NOTE* that `config_must_haves` is saved out as `must_haves` in order to keep legacy compatiblity.
+
+## Functions
+
+The only function that needs to be updated is `check_config`. This is deprecated since `set_up_config` will do all the work now. `check_config` is located in two directories:
+
+1. `mbg_central/misc_functions.R`, and  
+2. `mbg_central/LBDCore/R/check_config.R`.
+
+Open both of those files, and go the end of the large if-else block. Add a new if-else block if you're adding a new config parameter, and change the capitalized parts of the following code snippet to add in:
+```R
+    } else if (confs == "NAME_OF_CONFIG") {
+      message("You are missing a 'NAME_OF_CONFIG' argument in your config. Defaulting to DEFAULT_CONFIG_VAL")
+      NAME_OF_CONFIG <<- "DEFAULT_CONFIG_VAL"
+      message(paste0('  ', confs, ': ', get(confs)))
+      
+    } else {
+```
+
+Save them both out.
+
+
+
+

@@ -2,6 +2,8 @@ Code for the model of antibiotic usage in LMICs is in the antibiotic_usage folde
 Code for the data cleaning and model of antibiotic consumption in LMICs and HICs is found in the antibiotic consumption folder.
 Additional functions are in the misc folder
 
+study_schematic.png shows an overview of the study and hoe estimates for antibitoic usage and antibiotic consumption were produced.
+
 The MBG code for the antibiotic consumption model is adapted from code from the Local Burden of Disease (LBD) group of the Institute for
 Health Metrics and Evaluation (IHME), available at https://github.com/ihmeuw/lbd.
 

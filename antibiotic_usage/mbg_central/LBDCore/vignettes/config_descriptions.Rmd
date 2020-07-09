@@ -1,0 +1,27 @@
+---
+title: "Config Descriptions"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{Config Descriptions}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+```{r setup, include = FALSE}
+knitr::opts_chunk$set(
+  collapse = TRUE,
+  comment = "#>"
+)
+```
+
+```{r dt, include = FALSE}
+library(LBDCore)
+library(DT)
+```
+
+Here are the list of default config options which are used if an option is not found in the user's config.
+
+```{r configs}
+data("config_description")
+datatable(config_description)
+```

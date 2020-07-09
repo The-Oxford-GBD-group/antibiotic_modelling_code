@@ -1,0 +1,697 @@
+url: http://sandbox-web.ihme.washington.edu/~miker985/LBDCore
+pandoc: 1.19.2.1
+pkgdown: 1.3.0
+pkgdown_sha: ~
+articles: []
+title: "LBDCore"
+template:
+    params:
+        bootswatch: cosmo
+
+navbar:
+    left:
+      - text: "Home"
+        href: index.html
+      - text: "Informational Pages"
+        menu:
+         - text: "Updating Functions"
+           href: articles/updating_functions.html
+         - text: "Updating Config"
+           href: articles/updating_config.html
+         - text: "Fractional Raking"
+           href: articles/fractional_raking_migration.html
+         - text: "Config Descriptions"
+           href: articles/config_descriptions.html
+      - text: "MBG Pipeline"
+        menu:
+          - text: "Introduction"
+            href: articles/pipeline_intro.html
+          - text: "MBGPipeline"
+            href: articles/pipeline_main.html
+          - text: "MBGDag"
+            href: articles/pipeline_DAG.html
+          - text: "Pipeline Script Changes"
+            href: articles/pipeline_script_changes.html
+    right:
+      - text: "Changelog"
+        href: articles/NEWS.html
+      - text: "Functions"
+        href: reference/index.html
+
+
+reference:
+  - title: Datasets
+    desc: Various datasets in the LBDCore package
+    contents:
+      - '`config_values`'
+      - '`config_description`'
+      - '`config_tests`'
+      - '`must_haves`'
+      - '`ref_reg_list`'
+      - '`ace.r`'
+      - '`fss`'
+      - '`percent.over`'
+      - '`res.sd`'
+  - title: AROC functions
+    desc: ~
+    contents:
+    - '`add_goal`'
+    - '`compare_admin_years`'
+    - '`compare_all_admin_target`'
+    - '`compare_to_target`'
+    - '`get_admin_preds`'
+    - '`get_cell_pred_for_aroc`'
+    - '`get_sp_hierarchy`'
+    - '`make_aroc`'
+    - '`make_aroc_weights`'
+    - '`make_proj`'
+    - '`merge_sp_hierarchy`'
+  - title: Categorical variable functions
+    desc: ~
+    contents:
+    - '`adjust_equation_categorical`'
+    - '`create_categorical_raster`'
+    - '`update_cov_layers`'
+  - title: Collapse functions
+    desc: ~
+    contents:
+    - '`collapse_by`'
+    - '`collapse_list`'
+    - '`gbd_age`'
+    - '`setup_design`'
+  - title: Configuration functions
+    desc: ~
+    contents:
+    - '`get_newest_worldpop_release`'
+    - '`is_valid_worldpop_release`'
+    - '`set_default_config_values`'
+  - title: Covariate functions
+    desc: ~
+    contents:
+    - '`brt_covs`'
+    - '`check_for_cov_issues`'
+    - '`CovariatePathHelper`'
+    - '`fetch_gbd_cov`'
+    - '`gam_covs`'
+    - '`load_and_crop_covariates`'
+    - '`load_and_crop_covariates_annual`'
+    - '`load_gbd_covariates`'
+    - '`load_mbg_covariates`'
+    - '`load_worldpop_covariate`'
+    - '`MbgStandardCovariateLoader`'
+    - '`read_covariate_config`'
+    - '`save_brt_contributions`'
+    - '`save_standard_covariate`'
+    - '`update_fixed_effect_config_with_missing_release`'
+  - title: Custom raking functions
+    desc: ~
+    contents:
+    - '`custom_aggregate`'
+    - '`custom_rake`'
+    - '`load_custom_admin_raster`'
+    - '`save_custom_raking_outputs`'
+  - title: Diagnostic functions
+    desc: ~
+    contents:
+    - '`g_legend`'
+    - '`get_color_scheme`'
+    - '`make_gg_map`'
+    - '`make_model_diagnostics`'
+    - '`multiplot`'
+    - '`plot_gam_models`'
+    - '`plot_other_params`'
+    - '`plot_stacker_betas`'
+    - '`plot_stackers`'
+    - '`save_maps`'
+    - '`theme_empty`'
+  - title: Fractional raking functions
+    desc: ~
+    contents:
+    - '`aggregate_counts`'
+    - '`apply_fractional_rf`'
+    - '`build_link_polygon`'
+    - '`build_link_table`'
+    - '`calculate_pop_scalars`'
+    - '`calculate_fractional_rfs`'
+    - '`cell_pred_to_raster_brick`'
+    - '`dedupe_linked_cell_pred`'
+    - '`fetch_from_rdata`'
+    - '`fix_link`'
+    - '`fractional_agg_rates`'
+    - '`fractional_rake_rates`'
+    - '`fractionally_rake_counts`'
+    - '`get_fractional_rf`'
+    - '`get_link_table`'
+    - '`load_populations_cov`'
+    - '`prep_cell_pred`'
+    - '`prep_gbd_pops_for_fraxrake`'
+    - '`prep_link_table`'
+    - '`prep_shapes_for_raking`'
+    - '`raked_frax_counts_save`'
+    - '`sub_nat_link_merge`'
+  - title: GBD functions
+    desc: ~
+    contents:
+    - '`age_sex_merge`'
+    - '`age_sex_spec`'
+    - '`agg_vars`'
+    - '`china_hierarchy_fix`'
+    - '`detect_demographics`'
+    - '`get_ages`'
+    - '`get_citations`'
+    - '`get_con`'
+    - '`get_cov_estimates`'
+    - '`get_covariate_metadata`'
+    - '`get_covariate_version`'
+    - '`get_covariates`'
+    - '`get_demographics`'
+    - '`get_location_hierarchy`'
+    - '`get_names`'
+    - '`get_populations`'
+    - '`get_sexes`'
+    - '`is.blank`'
+    - '`janky_covariate_fix`'
+    - '`make_square`'
+    - '`pull_covariate`'
+    - '`run_query`'
+  - title: Holdout functions
+    desc: ~
+    contents:
+    - '`ad2_folds`'
+    - '`cell`'
+    - '`cell.quadtree`'
+    - '`cell.quadtree.leaf`'
+    - '`chrono_folds`'
+    - '`clip`'
+    - '`clip1`'
+    - '`clip2`'
+    - '`ct_folds`'
+    - '`get_sample_counts`'
+    - '`get_strat_combos`'
+    - '`get_strat_rows`'
+    - '`holdout_function_notes`'
+    - '`id`'
+    - '`id.quadtree`'
+    - '`id.quadtree.leaf`'
+    - '`lines.quadtree`'
+    - '`lines.quadtree.leaf`'
+    - '`make_folds`'
+    - '`make_folds_by_poly`'
+    - '`name_strata`'
+    - '`nid_folds`'
+    - '`points.quadtree`'
+    - '`points.quadtree.leaf`'
+    - '`proptime_folds`'
+    - '`proptime_folds_combine`'
+    - '`quad1`'
+    - '`quad2`'
+    - '`quadtree`'
+    - '`quadtree_ct`'
+    - '`quadtree_example_notes`'
+    - '`quadtree_folds`'
+    - '`rand_folds`'
+    - '`rand_s_folds`'
+    - '`rename_aarons_shapefiles`'
+    - '`yr_folds`'
+  - title: Link table functions
+    desc: ~
+    contents:
+    - '`build_raking_link_table`'
+    - '`standard_link_table`'
+    - '`standard_raking_link_pieces`'
+  - title: Location metadata functions
+    desc: ~
+    contents:
+    - '`fix_diacritics`'
+    - '`get_id`'
+    - '`get_ihme_lc_id`'
+    - '`get_location_code_mapping`'
+    - '`get_location_code_mapping_GAUL`'
+    - '`get_shared_db_conn`'
+    - '`run_sql_query`'
+  - title: MBG functions
+    desc: ~
+    contents:
+    - '`build_mbg_data_stack`'
+    - '`build_mbg_formula`'
+    - '`build_mbg_formula_with_priors`'
+    - '`fit_mbg`'
+    - '`invlogit`'
+    - '`local.inla.spde2.matern.new`'
+    - '`logit`'
+    - '`predict_mbg`'
+    - '`run_child_stackers`'
+    - '`save_mbg_input`'
+    - '`save_mbg_preds`'
+    - '`test_rho_priors`'
+    - '`transform_theta`'
+  - title: Miscellaneous functions
+    desc: ~
+    contents:
+    - '`accumulate`'
+    - '`addLabels`'
+    - '`addLines`'
+    - '`cellIdx`'
+    - '`centreScale`'
+    - '`check_config`'
+    - '`check_if_nonzero_exit`'
+    - '`clean_model_results_table`'
+    - '`clean_path`'
+    - '`cleanup_inla_scratch`'
+    - '`combine_aggregation`'
+    - '`combine_region_image_history`'
+    - '`condSim`'
+    - '`cp`'
+    - '`db`'
+    - '`defaultOptions`'
+    - '`delete_model_outputs`'
+    - '`draw.mesh`'
+    - '`elogit`'
+    - '`ez_evparse`'
+    - '`extract_region`'
+    - '`format_time`'
+    - '`generate_time_log`'
+    - '`get_git_status`'
+    - '`get_output_regions`'
+    - '`get_qa_wrapper`'
+    - '`get_qacct_exit_status`'
+    - '`get_qstat_table`'
+    - '`get_singularity`'
+    - '`getBranches`'
+    - '`getCentreScale`'
+    - '`getCols`'
+    - '`getEst`'
+    - '`getPaths`'
+    - '`getPoly`'
+    - '`getTwigs`'
+    - '`grab_time_hours`'
+    - '`graph_run_summary`'
+    - '`idx`'
+    - '`insertRaster`'
+    - '`list2paths`'
+    - '`load_from_parallelize`'
+    - '`loc`'
+    - '`Log`'
+    - '`lstype`'
+    - '`lonlat3D`'
+    - '`make_qsub`'
+    - '`make_qsub_postest`'
+    - '`make_qsub_share`'
+    - '`make_qsubs_aggregation`'
+    - '`matAgeParRate`'
+    - '`matAgeRate`'
+    - '`model_fit_table`'
+    - '`monitor_jobs`'
+    - '`my_breaks`'
+    - '`notMissingIdx`'
+    - '`parallelize`'
+    - '`plot_raster`'
+    - '`predGLM`'
+    - '`prepLines`'
+    - '`proportional_area_map`'
+    - '`pull_df`'
+    - '`pull_raster_covs`'
+    - '`pullupstream`'
+    - '`push_to_global_env`'
+    - '`qsub_sing_envs`'
+    - '`rank_draws`'
+    - '`record_git_status`'
+    - '`region_violin`'
+    - '`reportTime`'
+    - '`rmlike`'
+    - '`rnormMatrix`'
+    - '`set_up_config`'
+    - '`splitGeoNames`'
+    - '`startLog`'
+    - '`stopLog`'
+    - '`strip_time`'
+    - '`submit_aggregation_script`'
+    - '`subtractYears`'
+    - '`tabMatAgeParRate`'
+    - '`tabMatAgeRate`'
+    - '`targetYear`'
+    - '`tidyInstall`'
+    - '`toYear`'
+    - '`unpack`'
+    - '`update_lv_table`'
+    - '`waitforaggregation`'
+    - '`waitformodelstofinish`'
+    - '`waitformodelstofinishu5m`'
+    - '`waitforpostesttofinish`'
+    - '`waitforresultstable`'
+  - title: Polygon functions
+    desc: ~
+    contents:
+    - '`dupRecords`'
+    - '`getNewChunksWrapper`'
+    - '`getPointsWrapper`'
+    - '`getPointsWrapper.w.dict`'
+    - '`getpolys`'
+    - '`pull_polys_fast`'
+    - '`pull_polys_foreach`'
+    - '`pull_polys_mclapply`'
+    - '`resample_polygons`'
+    - '`resample_polygons_bysamplingtype`'
+    - '`resample_polygons_dev`'
+    - '`resample_polygons_fast`'
+  - title: Pipeline functions
+    desc: ~
+    contents:
+    - '`load_pipeline_image`'
+    - '`mbg_get_nodeenv`'
+    - '`mbg_job_marker`'
+    - '`mbg_save_nodeenv`'
+    - '`MBGDag`'
+    - '`MBGPipeline`'
+    - '`pipeline_postamble`'
+    - '`pipeline_preamble`'
+    - '`setup_parallel_model_inputs`'
+    - '`skip_to_inla_copyfile`'
+  - title: Post estimation functions
+    desc: ~
+    contents:
+    - '`Agg`'
+    - '`calc_raking_factors`'
+    - '`cfb`'
+    - '`cirange`'
+    - '`clean_after_postest`'
+    - '`compile_results_table`'
+    - '`EvalK`'
+    - '`extract_from_brick`'
+    - '`FindK`'
+    - '`fit_stats`'
+    - '`fit_stats_ho_id`'
+    - '`G`'
+    - '`G_Inv`'
+    - '`get_age_group_from_worldpop`'
+    - '`get_aggs`'
+    - '`get_gbd_estimates`'
+    - '`get_gbd_locs`'
+    - '`get_fhs_population`'
+    - '`get_percentile`'
+    - '`get_population_data`'
+    - '`get_weighted_correlation_raw_estimated`'
+    - '`get.aroc`'
+    - '`get.cov.wts`'
+    - '`iqr`'
+    - '`load_admin_raster`'
+    - '`load_cell_preds`'
+    - '`load_cell_preds_stack`'
+    - '`load_gbd_data`'
+    - '`loess_extrap_gbd_input_by_loc`'
+    - '`logit_rake`'
+    - '`lower`'
+    - '`make_admin_pred_summary`'
+    - '`make_africa_raster`'
+    - '`make_cell_pred_summary`'
+    - '`make_condSim`'
+    - '`make_population_weights`'
+    - '`make_weights_vector`'
+    - '`make.2000.2015.aroc`'
+    - '`make.forecast`'
+    - '`odds_qcd`'
+    - '`p_above`'
+    - '`p_below`'
+    - '`plot.cov.wts`'
+    - '`post_load_combine_save`'
+    - '`prep_postest`'
+    - '`qcd`'
+    - '`rake_predictions`'
+    - '`save_best_model`'
+    - '`save_post_est`'
+    - '`split_geo_names`'
+    - '`submit_results_table`'
+    - '`summarize_admins`'
+    - '`upper`'
+  - title: Prepping functions
+    desc: ~
+    contents:
+    - '`add_gauls_regions`'
+    - '`approx_match`'
+    - '`build_simple_raster_pop`'
+    - '`build_space_mesh`'
+    - '`build_time_mesh`'
+    - '`check_custom_regions`'
+    - '`check_if_in_spoly`'
+    - '`create_dirs`'
+    - '`crop_set_mask`'
+    - '`empty_world_raster`'
+    - '`gaul_convert`'
+    - '`geom_path_quiet`'
+    - '`geom_polygon_quiet`'
+    - '`get_adm_codes_subnat`'
+    - '`get_adm0_codes`'
+    - '`get_gaul_codes`'
+    - '`get_gaul_codes_subnat`'
+    - '`get_template_raster`'
+    - '`interpolate_gbd`'
+    - '`load_adm0_lookup_table`'
+    - '`load_config`'
+    - '`load_input_data`'
+    - '`load_libs`'
+    - '`load_simple_polygon`'
+    - '`make_gaul_table`'
+    - '`make_period_map`'
+    - '`make_regions_map`'
+    - '`make_time_stamp`'
+    - '`merge_with_ihme_loc`'
+    - '`plot_custom_regions`'
+    - '`pull_custom_modeling_regions`'
+    - '`query_config_db`'
+    - '`rasterize_check_coverage`'
+    - '`set_root`'
+    - '`shape_to_spointsdf`'
+    - '`utility_pull_adm0_codes`'
+    - '`vertices`'
+  - title: Qsub functions
+    desc: ~
+    contents:
+    - '`complete_runtime_string`'
+    - '`dhms_to_hours`'
+    - '`generate_qsub_command`'
+    - '`get_indicator_dir`'
+    - '`get_max_runtime_by_queue`'
+    - '`get_model_output_dir`'
+    - '`get_project`'
+    - '`get_queue`'
+    - '`get_resources`'
+    - '`get_resource_str`'
+    - '`get_run_time`'
+    - '`is_new_cluster`'
+    - '`get_sge_output_dir`'
+    - '`path_join`'
+    - '`pre_run_image_path`'
+    - '`setup_log_location`'
+    - '`validate_node_option`'
+    - '`validate_queue_string`'
+    - '`validate_singularity_options`'
+  - title: Raking functions
+    desc: ~
+    contents:
+    - '`apply_raking_factors`'
+    - '`calculate_raking_factors`'
+    - '`cellIdx`'
+    - '`crosswalk_cell_pred_add_NA`'
+    - '`crosswalk_cell_pred_alter_raster`'
+    - '`EvalDiff`'
+    - '`ilogit`'
+    - '`logit`'
+    - '`LogitFindK`'
+    - '`make_custom_raking_shapefile`'
+    - '`make_summary_rasters`'
+    - '`NewEst`'
+    - '`NewPixelVal`'
+    - '`rake_cell_pred`'
+    - '`save_raking_outputs`'
+  - title: seegMBG transform functions
+    desc: ~
+    contents:
+    - '`addQuotes`'
+    - '`gamTrans`'
+    - '`parseArgsS`'
+    - '`pcaTrans`'
+  - title: Setup functions
+    desc: ~
+    contents:
+    - '`fix_raster_tmpdir`'
+    - '`get_max_forked_threads`'
+    - '`get_mkl_threads`'
+    - '`get_omp_threads`'
+    - '`get_total_threads`'
+    - '`is_integer`'
+    - '`is_lbd_core_repo`'
+    - '`is_lbd_singularity`'
+    - '`is_rstudio`'
+    - '`is_singularity`'
+    - '`load_mbg_functions`'
+    - '`load_R_packages`'
+    - '`load_setthreads`'
+    - '`mbg_setup`'
+    - '`set_original_threads`'
+    - '`set_serial_threads`'
+    - '`setmkldynamic`'
+    - '`setmklthreads`'
+    - '`setompnested`'
+    - '`setompthreads`'
+    - '`source_functions`'
+  - title: Shapefile functions
+    desc: ~
+    contents:
+    - '`check_for_lock`'
+    - '`cleanv`'
+    - '`detect_adm_shapefile_date_type`'
+    - '`factory`'
+    - '`fast_load_shapefile`'
+    - '`get_admin_shape_dir`'
+    - '`get_admin_shapefile`'
+    - '`has`'
+    - '`hasError`'
+    - '`hasWarning`'
+    - '`is_admin_shapefile_string`'
+    - '`is.error`'
+    - '`isClean`'
+    - '`lock_file`'
+    - '`pull_result`'
+    - '`save_shapefile_as_rds`'
+    - '`synchronize_shapefile_directories`'
+    - '`unlock_file`'
+    - '`value`'
+    - '`wait_for_lock`'
+  - title: Shiny functions
+    desc: ~
+    contents:
+    - '`gLegend`'
+    - '`invlogit`'
+    - '`logit`'
+    - '`ntv_plot_function`'
+    - '`plot.data`'
+    - '`plot.preds`'
+    - '`shiny_cov_layers`'
+    - '`shiny_data_and_preds`'
+    - '`shiny_data_scatter`'
+    - '`shiny_raked`'
+    - '`shiny_raking_map`'
+    - '`vplayout`'
+  - title: Slot functions
+    desc: ~
+    contents:
+    - '`estimate_parallel_model_mem`'
+  - title: Stacking functions
+    desc: ~
+    contents:
+    - '`add_additional_terms`'
+    - '`aggregate_stackers_admin0`'
+    - '`emplogit`'
+    - '`extract_covariates`'
+    - '`fetch_covariate_layer`'
+    - '`fit_earth`'
+    - '`fit_earth_child_model`'
+    - '`fit_gam`'
+    - '`fit_gam_child_model`'
+    - '`fit_gbm`'
+    - '`fit_gbm_child_model`'
+    - '`fit_glmnet`'
+    - '`fit_glmnet_child_model`'
+    - '`fit_rf`'
+    - '`fit_rf_child_model`'
+    - '`fit_xgboost_child_model`'
+    - '`format_covariates`'
+    - '`gam_stacker`'
+    - '`glm_stacker`'
+    - '`make_stack_rasters`'
+    - '`predict_model_raster`'
+    - '`produce_stack_rasters`'
+    - ' run_optimizerPy '
+  - title: TMB functions
+    desc: ~
+    contents:
+    - '`build_mbg_data_stack_tmb`'
+    - '`fit_mbg_tmb`'
+    - '`fitted_param_table_tmb`'
+    - '`predict_mbg_tmb`'
+    - '`rmvnorm_prec`'
+  - title: Validation functions
+    desc: ~
+    contents:
+    - '`aggregate_validation`'
+    - '`aggregate_validation_dev`'
+    - '`dircos`'
+    - '`get_admin_pv`'
+    - '`get_is_oos_draws`'
+    - '`get_pv_table`'
+    - '`is_oos_preds_testing`'
+    - '`model_fit_table_list`'
+    - '`plot_5q0`'
+    - '`plot_5q0_summed`'
+    - '`plot_abs_errors`'
+    - '`plot_of_plots`'
+    - '`plot.rfs`'
+    - '`weighted.rmse`'
+  - title: Validation report functions
+    desc: ~
+    contents:
+    - '`check_for_holdouts`'
+    - '`compare_admin_estimates`'
+    - '`compile_polygons`'
+    - '`convert_to_iso3`'
+    - '`extract_raked_and_unraked`'
+    - '`extract_year_preds`'
+    - '`g_legend`'
+    - '`get_output_regions`'
+    - '`get_p_target`'
+    - '`group_wt_mean`'
+    - '`is_oos_preds`'
+    - '`load_region_input_data`'
+    - '`make_beta_plot`'
+    - '`make_country_list`'
+    - '`make_country_list_allAdmins`'
+    - '`make_period_matrix`'
+    - '`make_quilt_matrix`'
+    - '`make_year_table`'
+    - '`parse_region_name`'
+    - '`plot_each_nid_raked`'
+    - '`plot_each_nid_unraked`'
+    - '`plot_quilt`'
+    - '`plot_target`'
+    - '`plot_varios_and_violins`'
+    - '`process_betas`'
+    - '`pull_country_draws`'
+    - '`pull_country_draws_all_admins`'
+    - '`pull_period_pops`'
+    - '`raking_factors_map`'
+    - '`report_each_gaul`'
+    - '`submit_validation_report`'
+    - '`summarize_admin2`'
+    - '`val_raking_factors`'
+    - '`vplayout`'
+  - title: Validation reports functions (for publication)
+    desc: ~
+    contents:
+    - '`convert_to_iso3`'
+    - '`extract_year_preds`'
+    - '`plot_violins`'
+    - '`submit_validation_report_pub`'
+  - title: Visualization functions
+    desc: ~
+    contents:
+    - '`add_run_label`'
+    - '`aspect_ratio_plot`'
+    - '`format_plot_obj`'
+    - '`format_plot_obj_scatter`'
+    - '`geom_path_quiet`'
+    - '`geom_polygon_quiet`'
+    - '`input_aggregate_admin`'
+    - '`input_clean`'
+    - '`last_year_map`'
+    - '`last_year_map_multiple`'
+    - '`location_map_draw`'
+    - '`plot_ordered_admins_colors`'
+    - '`plot_overlay`'
+    - '`simplify_spdf`'
+    - '`subnational_nid_subset`'
+    - '`subnational_ts_plots`'
+    - '`time_series`'
+    - '`time_series_data`'
+    - '`time_series_multiple`'
+    - '`time_series_multiple_data`'
+    - '`title_generate`'

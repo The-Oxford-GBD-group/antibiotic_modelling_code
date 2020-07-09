@@ -1,0 +1,65 @@
+---
+title: "Migrating to Fractional Raking"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{Migrating to Fractional Raking}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+```{r setup, include = FALSE}
+knitr::opts_chunk$set(
+  collapse = TRUE,
+  comment = "#>"
+)
+```
+
+
+The following steps are needed to migrate from legacy to fractional raking.
+
+
+
+## Config arguments to update
+
+There are a bunch of config argument related to (fractional) raking that have been updated with defaults. These arguments are used in `postest_frax_script.R`, and are automatically added to a user's config script when calling `set_up_config` with the following defaults.
+
+1. `metric_space` : defines whether the data being modeled is in `rates` or `counts` space. Defaults to `rates`.  
+2. `subnational_raking` : a boolean on whether to do subnational raking or not. Defaults to `TRUE`.  
+3. `countries_not_to_rake`: a formula or string vector of ISO3 country codes on which countries to not rake at all whatsoever. Defaults to `"ESH+GUF"`.
+4. `countries_not_to_subnat_rake`: a formula or string vector of ISO3 country codes on which countries to not subnationally rake. Defaults to `"PHL+NGA+PAK+ETH+KEN"`.
+
+NOTE: If you don't want to rake any of your countries at all, then set the value of `countries_not_to_rake` (and `countries_not_to_subnat_rake`) to the region that you're modeling over, and that will set all the rake factors to 1.
+
+
+## Changing Launch Script
+
+An example launch script using fractional raking can be found here: `mbg_central/LBDCore/testing_models/launch_with_fractional_raking.R`. Here are the marginal changes the user needs to make in their launch script:
+
+1. When running `load_config` (which really points to `set_up_config`... please just use `set_up_config`), make sure that the `config` object is assigned from the output of the function call. This `config` object will be a data.table with the config arguments.
+
+2. Add `config` to the `prep_postest` function call right before submitting the post estimation jobs, because this object is necessary to be pulled into the post-estimation script, as such: 
+```r 
+prep_postest(
+    indicator = indicator,
+    indicator_group = indicator_group,
+    run_date = run_date,
+    save_objs = c(
+      "core_repo", "gbd", "year_list", "summstats",
+      "rake_transform", "pop_measure", "config"
+    )
+  )
+```
+
+3. Update `postest_script` to point to `postest_frax_script.R`:
+```r
+postest_script <- "postest_frax_script"
+```
+
+4. Remove calls to `submit_aggregation_script` and `waitforaggregation`. The fractional post-estimation script does both raking AND aggreagtion and saves out the necessary files.
+
+
+
+
+
+
+
