@@ -41,7 +41,7 @@ deviations <- mydata[,.(min_adm2 = min(mean),
 deviations$total_deviation <- deviations$max_deviation - deviations$min_deviation
 
 #Merge on additional location information for plotting
-locs <- read.dbf("D:/Z_drive/Shapefiles/GBD2019/GBD2019_analysis_final_loc_set_22.dbf")
+locs <- read.dbf("Z:/AMR/Shapefiles/GBD2019/GBD2019_analysis_final_loc_set_22.dbf")
 locs <- locs[locs$level == 3,]
 locs <- locs[c('loc_name', 'ihme_lc_id', 'spr_reg_id')]
 locs$loc_name <- as.character(locs$loc_name)
@@ -109,7 +109,7 @@ ggplot(deviations[deviations$year == 2018,])+
 deviations_2000_2018 <- 
 ggplot()+
   # geom_hline(yintercept = c(0.25, 0.5, 0.75), colour = 'grey', size = 0.5)+
-  geom_crossbar(data = deviations[deviations$year == 2000,], aes(x = ihme_lc_id, y = 0, ymin = min_deviation, ymax = max_deviation),colour = '#CCCCCC', size=1.5, width=0.01)+
+  geom_crossbar(data = deviations[deviations$year == 2000,], aes(x = ihme_lc_id, y = 0, ymin = min_deviation, ymax = max_deviation),colour = '#969696', size=1.5, width=0.01)+
   geom_crossbar(data = deviations[deviations$year == 2018,], aes(x = ihme_lc_id, y = 0, ymin = min_deviation, ymax = max_deviation, colour = region), size=1.5, width=0.01, position=position_nudge(x=.5))+
   geom_point(data = deviations, aes(x = ihme_lc_id, y = 0), color='#000000', shape=18, size=1)+
   geom_point(data = deviations, aes(x = ihme_lc_id, y = 0), color='#000000', shape=18, size=1, position = position_nudge(x=.5))+
@@ -152,7 +152,7 @@ ggplot(deviations[deviations$year == 2018,])+
 #Plot the admin2 ranges for 2000 and 2018
 admin2_2000_2018 <- 
 ggplot()+
-  geom_crossbar(data = deviations[deviations$year == 2000,], aes(x = ihme_lc_id, y = country_mean*100, ymin = min_adm2*100, ymax = max_adm2*100),colour = '#CCCCCC', size=1.5, width=0.01)+
+  geom_crossbar(data = deviations[deviations$year == 2000,], aes(x = ihme_lc_id, y = country_mean*100, ymin = min_adm2*100, ymax = max_adm2*100),colour = '#969696', size=1.5, width=0.01)+
   geom_crossbar(data = deviations[deviations$year == 2018,], aes(x = ihme_lc_id, y = country_mean*100, ymin = min_adm2*100, ymax = max_adm2*100, colour = region), size=1.5, width=0.01, position=position_nudge(x=.5))+
   geom_point(data = deviations[deviations$year == 2000,], aes(x = ihme_lc_id, y = country_mean*100), color='#000000', shape=17, size=1.5)+
   geom_point(data = deviations[deviations$year == 2018,], aes(x = ihme_lc_id, y = country_mean*100), color='#000000', shape=18, size=1.5, position = position_nudge(x=.5))+
@@ -173,7 +173,7 @@ ggplot()+
   theme(legend.position = 'none')
 
 #Save plots
-png('abx_use/figures/plots/admin2_2018v2.png', 
+png('abx_use/figures/plots/admin2_2018.png', 
     height = 10, width = 35, units = 'cm', res = 300)
 admin2_2018
 dev.off()
@@ -195,8 +195,8 @@ dev.off()
 
 
 # Save multi-figure
-png('abx_use/figures/plots/admin_2_relative_deviation_figure_2000_2018.png',
-    height=14, width=22, units = 'in', res = 300
+pdf('abx_use/figures/plots/admin_2_relative_deviation_figure_2000_2018.pdf',
+    height=14, width=22
 )
 grid.arrange(admin2_2000_2018, deviations_2000_2018, nrow = 2, heights=c(8,3.5))
 vp <- grid::viewport(

@@ -97,7 +97,6 @@ png('combined_sources/HIC_imputation/missing_data.png',
 dev.off()
 
 ##IMPUTE THE MISSING VALUES
-#for final estimates can increase maxit = 1000 and m = 10 (but this will take quite a while) --> run for a while on the cluster
 imputed.data <- mice(data = env.covs, m=5, maxit = 50, method = 'cart', seed = 1234)
 
 # Plot imputations

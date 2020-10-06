@@ -178,9 +178,6 @@ imputed.data <- imputed.data[,.(super_region, region, country, iso3, loc_id, GAU
                                 hospital_ddd, retail_ddd, combined_ddd, total_ddd,
                                 hospital_ddd_per_1000_pop, retail_ddd_per_1000_pop, combined_ddd_per_1000_pop, total_ddd_per_1000_pop)]
 
-CHN <-  read.csv('imputation/CHINA/china.csv', stringsAsFactors = F)
-imputed.data <-  rbind(imputed.data, CHN)
-
 write.csv(imputed.data, paste0('imputation/imputed_ddd_per_1000_2000_2018.csv'), row.names = F)
 
 # 4. Plot out the data ####
