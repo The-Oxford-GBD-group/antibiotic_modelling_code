@@ -2,9 +2,9 @@
 library(sf)
 library(RColorBrewer)
 library(ggplot2)
-source('D:/H_Drive/Functions/seqlast.R')
+source('H:/Functions/seqlast.R')
 
-setwd('D:/Z_drive/Covariates/antibiotic_use/results')
+setwd('Z:/AMR/Covariates/antibiotic_use/results')
 
 mydata <- read.csv('ddd_per_1000_per_day.csv', stringsAsFactors = F)
 

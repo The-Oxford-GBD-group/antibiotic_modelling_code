@@ -143,8 +143,8 @@ mydata <- mydata[,.(country, year, super_region, region,
 
 
 #4. Apply the proportions to the modelled estimates of DDD/1000/day ####
-J01 <- data.table(read.csv('results/all_results.csv', stringsAsFactors = F))
-J01 <- J01[,.(super_region = Super.region, region = Region, country = toupper(Country), year, total_ddd = ddd, total_ddd_per_1000 = ddd_per_1000, population)]
+J01 <- data.table(read.csv('results/GPR5/all_results.csv', stringsAsFactors = F))
+J01 <- J01[,.(super_region = Super.region, region = Region, country = toupper(Country), year, total_ddd = ddd, total_ddd_per_1000 = ddd_per_1000_per_day, population)]
 
 #remove FWA and central america from the proportions (as these will then get sorted by regions)
 mydata <- mydata[!(mydata$country == 'FRENCH WEST AFRICA' | mydata$country == 'CENTRAL AMERICA' | mydata$country == 'HONG KONG'),]
@@ -241,7 +241,10 @@ super_regions <- mydata[,.(total_ddd = sum(ddd),
                            total_ddd_per_1000_pop_per_day = (sum(ddd)/(sum(population)/1000))/365),
                         by = c('super_region', 'year', 'ATC4')]
 
-#a. By World Banl income groups
+write.csv(super_regions, 'results/tables/ATC4_spr_reg.csv', row.names = F)
+
+#a. By World Bank income groups
+dir.create('results/figures/plots/ATC4', showWarnings = F)
 png('results/figures/plots/ATC4/ATC4_by_income.png',
     height = 10, width = 20, units = 'cm', res = 300)
 ggplot(income)+
@@ -275,7 +278,7 @@ ggplot(super_regions[super_regions$super_region == unique(super_regions$super_re
                                  "#e41a1c"))+ #SSA
   expand_limits(y = 0)+
   theme_bw()+
-  labs(y = 'Daily defined doses per 1000 population per day', x = 'Year', colour = 'GBD Super regions')
+  labs(y = 'Defined Daily doses per 1000 population per day', x = 'Year', colour = 'GBD Super regions')
 dev.off()
 
 #~~~~~#
