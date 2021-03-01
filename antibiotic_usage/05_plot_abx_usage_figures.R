@@ -15,8 +15,8 @@ library(grid)
 setwd('Z:/AMR/Covariates/antibiotic_use')
 
 #Read in the results
-admin0 <- data.table(read.csv('abx_use/current/admin_summaries/cough_antibiotics_admin_0_unraked_summary.csv', stringsAsFactors = F))
-admin2 <- data.table(read.csv('abx_use/current/admin_summaries/cough_antibiotics_admin_2_unraked_summary.csv', stringsAsFactors = F))
+admin0 <- fread('abx_use/current/admin_summaries/cough_antibiotics_admin_0_unraked_summary.csv', stringsAsFactors = F)
+admin2 <- fread('abx_use/current/admin_summaries/cough_antibiotics_admin_2_unraked_summary.csv', stringsAsFactors = F)
 
 admin0 <- admin0[,1:5]
 names(admin0)[5] <- 'country_mean'
@@ -34,7 +34,8 @@ mydata$relative_deviation <- mydata$absolute_deviation/mydata$country_mean
 deviations <- mydata[,.(min_adm2 = min(mean),
                         max_adm2 = max(mean),
                         min_deviation = min(absolute_deviation),
-                        max_deviation = max(absolute_deviation)),
+                        max_deviation = max(absolute_deviation),
+                        mean_deviation = mean(abs(relative_deviation))),
                      by = c('ADM0_NAME', 'year', 'country_mean')]
 
 #get a total value of realitve deviation
@@ -76,9 +77,8 @@ deviations$ihme_lc_id[deviations$ADM0_NAME == 'Western Sahara'] <- 'ESH'
 deviations$region[deviations$ADM0_NAME == 'Western Sahara'] <- 'Sub-Saharan Africa'
 
 
-#Order data based on the national mean (so same as main figure), shnage to factor for plotting
+#Order data based on the national mean (so same as main figure), change to factor for plotting
 deviations <- deviations[order(-deviations$year, deviations$country_mean),]
-
 countries <- unique(deviations$ihme_lc_id)
 deviations$ihme_lc_id <- factor(deviations$ihme_lc_id, levels = countries)
 
@@ -105,7 +105,7 @@ ggplot(deviations[deviations$year == 2018,])+
   theme(legend.position = 'bottom')
 
 
-#Plot the relative deviations for 2000 and 2018
+#Plot the range of relative deviations for 2000 and 2018
 deviations_2000_2018 <- 
 ggplot()+
   # geom_hline(yintercept = c(0.25, 0.5, 0.75), colour = 'grey', size = 0.5)+
@@ -125,6 +125,27 @@ ggplot()+
   xlab('Country')+
   labs(colour = "GBD Super-region", title = 'Relative deviation from country mean')+
   scale_y_continuous("Relative deviation", breaks = c(-.4, -.2, 0, 0.2, 0.4), labels = c('-0.4', '-0.2', '0', '0.2', '0.4'), expand = c(0, 0), limits = c(-.4, .4))+
+  # ylim(0,1)+
+  guides(alpha=F)+
+  theme(legend.position = 'bottom')
+
+#Plot the mean relative deviations for 2000 and 2018
+mean_deviations_2000_2018 <- 
+  ggplot()+
+  geom_crossbar(data = deviations[deviations$year == 2000,], aes(x = ihme_lc_id, y = 0, ymin = 0, ymax = mean_deviation),colour = '#969696', size=1.5, width=0.01)+
+  geom_crossbar(data = deviations[deviations$year == 2018,], aes(x = ihme_lc_id, y = 0, ymin = 0, ymax = mean_deviation, colour = region), size=1.5, width=0.01, position=position_nudge(x=.5))+
+  scale_colour_manual(values = c("#fe9929",
+                                 "#e78ac3",
+                                 "#984ea3",
+                                 "#4daf4a",
+                                 "#377eb8",
+                                 "#e41a1c"))+
+  theme_bw()+
+  theme(axis.text.x = element_text(angle = 90, hjust = 1))+
+  theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank())+
+  xlab('Country')+
+  labs(colour = "GBD Super-region", title = 'Mean relative deviation')+
+  scale_y_continuous("Mean relative deviation (%)", breaks = c(0, 0.1, 0.2, 0.3), labels = c('0', '10', '20', '30'), expand = c(0, 0), limits = c(0, 0.3))+
   # ylim(0,1)+
   guides(alpha=F)+
   theme(legend.position = 'bottom')
@@ -222,7 +243,21 @@ vp <- grid::viewport(
 )
 grid::pushViewport(vp)
 dev.off()
-  
+ 
+#mean relative deviations figure
+png('abx_use/figures/plots/mean_relative_deviation_figure_2000_2018.png',
+    height=14, width=22, units = 'in', res = 300
+)
+grid.arrange(admin2_2000_2018, mean_deviations_2000_2018, nrow = 2, heights=c(8,3.5))
+vp <- grid::viewport(
+  x = unit(.03, 'npc'),
+  y = unit(.92, 'npc'),
+  width = unit(.2, 'npc'),
+  height= unit(.16, 'npc'),
+  just = c('left','top')
+)
+grid::pushViewport(vp)
+dev.off()
+
 # Save out the files
-deviations <- deviations[,.(Region = region, Country = ADM0_NAME, Year = year, mean.anitbiotic.usage = country_mean, relative_deviation = total_deviation)]
 write.csv(deviations, 'abx_use/realitve_deviation.csv', row.names = F)
