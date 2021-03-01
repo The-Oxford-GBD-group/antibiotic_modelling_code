@@ -7,48 +7,39 @@ library(raster)
 library(ggplot2)
 library(viridis)
 library(sp)
+library(ggpubr)
 source('H:/Functions/seqlast.R')
+source('H:/Functions/simpleCap.R')
 
 setwd('Z:/AMR/Covariates/antibiotic_use/')
 
 #1. Read in and prep datasets ####
-IQVIA <- data.table(read.csv('IQVIA/imputation/imputed_ddd_per_1000_2000_2018.csv', stringsAsFactors = F))
+IQVIA <- fread('IQVIA/imputation/imputed_ddd_per_1000_2000_2018.csv', stringsAsFactors = F)
 IQVIA <-  IQVIA[IQVIA$ATC3 != 'J04A',]
 
-AWaRe <- read.csv('IQVIA/lookup_tables/AWARE_categories.csv', stringsAsFactors = F)
+AWaRe <- fread('IQVIA/lookup_tables/AWaRE_v2.csv', stringsAsFactors = F)
 IQVIA <-  merge(IQVIA, AWaRe, by = c('ATC5'), all.x = T, all.y = F)
 IQVIA$AWARE[is.na(IQVIA$AWARE)] <-  'Other'
 IQVIA$AWARE[IQVIA$AWARE==""] <-  'Other'
-IQVIA <- data.table(IQVIA)
-IQVIA <- IQVIA[,.(ddd_per_1000=total_ddd_per_1000_pop),
+IQVIA <- IQVIA[,.(total_ddd, ddd_per_1000=total_ddd_per_1000_pop),
                by = c("super_region", "region", "country", "iso3", "loc_id", "year", "AWARE")]
 
-WHO <- read.csv("WHO/WHO_AWaRE_clean.csv")
-WHO <- WHO[!(WHO$iso3 %in% IQVIA$iso3),]
-colnames(WHO)[colnames(WHO)=='access'] <- 'Access'
-colnames(WHO)[colnames(WHO)=='watch'] <- 'Watch'
-colnames(WHO)[colnames(WHO)=='reserve'] <- 'Reserve'
+rm(AWaRe)
 
-WHO$Other <- WHO$ddd_per_1000 - WHO$Access - WHO$Watch - WHO$Reserve
-WHO <- data.table(WHO)
-WHO <- melt(WHO, id.vars = c("super_region", "region", "country", "iso3", "loc_id", "year"),
-            measure.vars = c("Access", "Watch", "Reserve", "Other"),
-            variable.name = 'AWARE',
-            value.name = 'ddd_per_1000')
-
-mydata <- rbind(IQVIA, WHO)
-rm(IQVIA, WHO, AWaRe)
-
-ddd_per_1000 <- mydata[,.(ddd_per_1000 = sum(ddd_per_1000)),
+ddd_per_1000 <- IQVIA[,.(ddd = sum(total_ddd),  ddd_per_1000 = sum(ddd_per_1000)),
                        by = c("super_region", "region", "country", "iso3", "loc_id", "year", "AWARE")]
 
-sum_ddd_per_1000 <- mydata[,.(total_ddd_per_1000 = sum(ddd_per_1000)),
+ddd_per_1000$ddd_per_1000[ddd_per_1000$ddd_per_1000<0] <- 0
+ddd_per_1000$ddd[ddd_per_1000$ddd<0] <- 0
+
+sum_ddd_per_1000 <- IQVIA[,.(total_ddd = sum(total_ddd), total_ddd_per_1000 = sum(ddd_per_1000)),
                        by = c("super_region", "region", "country", "iso3", "loc_id", "year")]
 
-mydata <- merge(ddd_per_1000, sum_ddd_per_1000)
-mydata$prop_aware <- mydata$ddd_per_1000/mydata$total_ddd_per_1000
+mydata <- merge(ddd_per_1000, sum_ddd_per_1000, by = c("super_region", "region", "country", "iso3", "loc_id", "year"))
 
-#add data for Algeria reserve abx
+mydata$prop_aware <- round(mydata$ddd/mydata$total_ddd,3) 
+
+#add data for Algeria reserve abx for the map
 DZA <- mydata[mydata$iso3 == 'DZA' & mydata$AWARE == 'Watch',]
 DZA$AWARE <-  'Reserve'
 DZA$prop_aware <- 0
@@ -56,6 +47,51 @@ DZA$total_ddd_per_1000 <-  0
 DZA$ddd_per_1000 <-  0
 mydata <-  rbind(mydata, DZA)
 rm(DZA)
+
+# Plot out bar charts for 2000 and 2018
+mydata$country <- sapply(mydata$country, simpleCap)
+mydata$country <-  gsub('And', '&', mydata$country)
+
+mydata$AWARE <- factor(mydata$AWARE, levels = c("Other", "Reserve", "Watch", "Access"))
+write.csv(mydata, 'results/AwARE.csv', row.names = F)
+
+mydata_2000 <- mydata[mydata$year == 2000,]
+mydata_2000 <- mydata_2000[order(-mydata_2000$AWARE, -mydata_2000$prop_aware),]
+countries <- unique(mydata_2000$country)
+mydata_2000$country <-  factor(mydata_2000$country, levels = countries)
+
+mydata_2018 <- mydata[mydata$year == 2018,]
+mydata_2018 <- mydata_2018[order(-mydata_2018$AWARE, -mydata_2018$prop_aware),]
+countries <- unique(mydata_2018$country)
+mydata_2018$country <-  factor(mydata_2018$country, levels = countries)
+
+plot_2000<-
+  ggplot(mydata_2000, aes(x = country, y = prop_aware, fill =AWARE))+
+    geom_bar(position="fill", stat="identity")+
+    labs(x = NULL, y = 'Proportion of antibiotics consumed', fill = NULL)+
+    theme_bw()+
+    theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1))+
+    scale_fill_manual(values = c('#984ea3', '#4daf4a', '#377eb8', '#e41a1c'))+
+    scale_y_continuous("Percentage of antibiotics consumed", breaks = c(0, .25, .50, .75, 1), labels = c('0', '25', '50', '75', '100'), expand = c(0, 0))+
+    theme(legend.position = 'bottom',
+        axis.title=element_text(size=8))
+
+
+plot_2018<-
+  ggplot(mydata_2018, aes(x = country, y = prop_aware, fill =AWARE))+
+    geom_bar(position="fill", stat="identity")+
+    labs(x = NULL, y = 'Proportion of antibiotics consumed', fill = NULL)+
+    theme_bw()+
+    theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1))+
+    scale_fill_manual(values = c('#984ea3', '#4daf4a', '#377eb8', '#e41a1c'))+
+    scale_y_continuous("Percentage of antibiotics consumed", breaks = c(0, .25, .50, .75, 1), labels = c('0', '25', '50', '75', '100'), expand = c(0, 0))+
+    theme(legend.position = 'bottom',
+          axis.title=element_text(size=8))
+  
+png('Z:/AMR/Covariates/antibiotic_use/results/GPR5/figures/plots/AWaRE_2000_2018.png',
+    height = 20, width = 40, units = 'cm', res = 300)
+  ggarrange(plot_2000, plot_2018, ncol = 1, labels = c('a', 'b'), common.legend = TRUE, legend="bottom")
+dev.off()
 
 #2. Plot map of proportion of AWaRE antibitoics ####
 shp <- st_read('Z:/AMR/Shapefiles/IQVIA_analysis.shp')
@@ -70,7 +106,7 @@ background_shp <- shp[!(shp$loc_id %in% my_shp$loc_id[my_shp$year == 2000]) | sh
 my_shp$AWARE <- factor(my_shp$AWARE, levels = c("Access", "Watch", 'Reserve', 'Other'))  
 
 #a. For 2018
-png('results/figures/maps/AWaRe_2018.png',
+png('results/GPR5/figures/maps/AWaRe_2018.png',
      height = 20, width = 20, units = 'cm', res = 200)
 ggplot()+
   geom_sf(data = background_shp, fill = '#bdbdbd',colour = 'black', size = 0.25)+
@@ -83,6 +119,7 @@ ggplot()+
   facet_wrap(~AWARE, ncol = 2)+
   labs(fill = 'Proportion of total antibiotics')
 dev.off()
+
 
 #b. For 2000
 png('results/figures/maps/AWaRe_2000.png',
@@ -144,30 +181,33 @@ ggplot()+
   labs(fill = 'Proportion of total antibiotics')
 dev.off()
 
-#Order the levels
-mydata$AWARE <- factor(mydata$AWARE, levels = c("Other", "Reserve", "Watch", "Access"))
-
-#3. Plot as a bar chart
-mydata$prop_aware[mydata$prop_aware<0] <-  NA
 
 #a. GLobal
-png('results/figures/prop_AWARE_stacked_bars.png',
-    height = 10, width = 15, units = 'cm', res = 300)
-ggplot(mydata, aes(x = year, y = prop_aware, fill =AWARE))+
-  geom_bar(position="fill", stat="identity")+
-  labs(x = 'Year', y = 'Proportion of antibiotics consumed', fill = NULL)+
-  theme_bw()
+global_ddds <- IQVIA[,.(ddd = sum(total_ddd)),
+                       by = c("year", "AWARE")]
 
-#b. by country
-pdf('results/figures/plots/AWARE.pdf',
-    height = 8.3, width = 11.7)
-for(i in 1:length(unique(mydata$super_region))){
-  subset <- mydata[mydata$super_region == unique(mydata$super_region)[i],]
-  print(ggplot(subset, aes(x = year, y = prop_aware, fill =AWARE))+
-          geom_bar(position="fill", stat="identity")+
-          labs(x = 'Year', y = 'Proportion of antibiotics consumed', fill = NULL)+
-          facet_wrap(~country)
-        )}
+global_total <- IQVIA[,.(total_ddd = sum(total_ddd)),
+                           by = c("year")]
+
+global_data <- merge(global_ddds, global_total)
+
+global_data$prop_aware <- round(global_data$ddd/global_data$total_ddd,3) 
+
+global_data$AWARE <-  factor(global_data$AWARE, levels = c('Other', 'Reserve', 'Watch', 'Access'))
+
+
+png('results/GPR5/figures/plots/AWARE_all_IQVIA_by_year.png',
+    height = 10, width = 15, units = 'cm', res = 300)
+ggplot(global_data, aes(x = year, y = prop_aware, fill =AWARE))+
+  geom_bar(position="fill", stat="identity")+
+  labs(fill = NULL)+
+  theme_bw()+
+  theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1))+
+  scale_fill_manual(values = c('#984ea3', '#4daf4a', '#377eb8', '#e41a1c'))+
+  scale_y_continuous("Percentage of antibiotics consumed", breaks = c(0, .25, .50, .75, 1), labels = c('0', '25', '50', '75', '100'), expand = c(0, 0))+
+  scale_x_continuous("Year", breaks = c(2000:2018), expand = c(0, 0))+
+  theme(legend.position = 'bottom',
+        axis.title=element_text(size=8))
 dev.off()
 
 #~~~~~#
