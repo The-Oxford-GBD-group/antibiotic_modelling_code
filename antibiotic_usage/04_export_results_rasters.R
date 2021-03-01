@@ -8,23 +8,23 @@ library(raster)
 library(data.table)
 
 # Model run details
-run_date                 <- '2020_02_15_03_49_34'
-indicator                <- 'cough_antibiotics'
-indicator_group          <- 'antibiotics'
+run_date                 <- '2021_01_29_03_32_09'
+indicator                <- 'mdr_typhi'
+indicator_group          <- 'lbd_amr'
 
 #create an output directory
 outputdir <- paste0('/ihme/geospatial/mbg/', indicator_group, '/', indicator, '/output/', run_date ,'/model_validation/rasters')
 dir.create(outputdir, showWarnings = F)
 
 #read in the aggregated results
-adm0 <- read.csv(paste0('/ihme/geospatial/mbg/', indicator_group, '/', indicator, '/output/', run_date ,'/pred_derivatives/admin_summaries/cough_antibiotics_admin_0_unraked_summary.csv'), stringsAsFactors = F)
-adm1 <- read.csv(paste0('/ihme/geospatial/mbg/', indicator_group, '/', indicator, '/output/', run_date ,'/pred_derivatives/admin_summaries/cough_antibiotics_admin_1_unraked_summary.csv'), stringsAsFactors = F)
-adm2 <- read.csv(paste0('/ihme/geospatial/mbg/', indicator_group, '/', indicator, '/output/', run_date ,'/pred_derivatives/admin_summaries/cough_antibiotics_admin_2_unraked_summary.csv'), stringsAsFactors = F)
+adm0 <- read.csv(paste0('/ihme/geospatial/mbg/', indicator_group, '/', indicator, '/output/', run_date ,'/pred_derivatives/admin_summaries/', indicator, '_admin_0_unraked_summary.csv'), stringsAsFactors = F)
+adm1 <- read.csv(paste0('/ihme/geospatial/mbg/', indicator_group, '/', indicator, '/output/', run_date ,'/pred_derivatives/admin_summaries/', indicator, '_admin_1_unraked_summary.csv'), stringsAsFactors = F)
+adm2 <- read.csv(paste0('/ihme/geospatial/mbg/', indicator_group, '/', indicator, '/output/', run_date ,'/pred_derivatives/admin_summaries/', indicator, '_admin_2_unraked_summary.csv'), stringsAsFactors = F)
 
 #read in the shapefiles used to agregate results
-adm0_shp <- shapefile('/snfs1/WORK/11_geospatial/admin_shapefiles/2019_12_12/lbd_standard_admin_0.shp')
-adm1_shp <- shapefile('/snfs1/WORK/11_geospatial/admin_shapefiles/2019_12_12/lbd_standard_admin_1.shp')
-adm2_shp <- shapefile('/snfs1/WORK/11_geospatial/admin_shapefiles/2019_12_12/lbd_standard_admin_2.shp')
+adm0_shp <- shapefile('/snfs1/WORK/11_geospatial/admin_shapefiles/2020_05_21/lbd_standard_admin_0.shp')
+adm1_shp <- shapefile('/snfs1/WORK/11_geospatial/admin_shapefiles/2020_05_21/lbd_standard_admin_1.shp')
+adm2_shp <- shapefile('/snfs1/WORK/11_geospatial/admin_shapefiles/2020_05_21/lbd_standard_admin_2.shp')
 
 #reshape data files
 adm0 <- data.table(adm0)
@@ -63,14 +63,18 @@ writeRaster(adm2_2018_upper, paste0(outputdir, '/cough_abx_adm2_2018_upper.tif')
 writeRaster(adm2_2018_lower, paste0(outputdir, '/cough_abx_adm2_2018_lower.tif'), format = 'GTiff', overwrite = T)
 
 #3. 5 yearly admin 2
+adm2_1990_mean <- rasterize(mean_adm2, raster(extent(mean_adm2), res = 0.05), field = '1990' )
+adm2_1995_mean <- rasterize(mean_adm2, raster(extent(mean_adm2), res = 0.05), field = '1995' )
 adm2_2000_mean <- rasterize(mean_adm2, raster(extent(mean_adm2), res = 0.05), field = '2000' )
 adm2_2005_mean <- rasterize(mean_adm2, raster(extent(mean_adm2), res = 0.05), field = '2005' )
 adm2_2010_mean <- rasterize(mean_adm2, raster(extent(mean_adm2), res = 0.05), field = '2010' )
 adm2_2015_mean <- rasterize(mean_adm2, raster(extent(mean_adm2), res = 0.05), field = '2015' )
 
-writeRaster(adm2_2000_mean, paste0(outputdir, '/cough_abx_adm2_2000_mean.tif'), format = 'GTiff', overwrite = T)
-writeRaster(adm2_2005_mean, paste0(outputdir, '/cough_abx_adm2_2005_mean.tif'), format = 'GTiff', overwrite = T)
-writeRaster(adm2_2010_mean, paste0(outputdir, '/cough_abx_adm2_2010_mean.tif'), format = 'GTiff', overwrite = T)
+writeRaster(adm2_1990_mean, paste0(outputdir, '/', indicator, '_adm2_1990_mean.tif'), format = 'GTiff', overwrite = T)
+writeRaster(adm2_1995_mean, paste0(outputdir, '/', indicator, '_adm2_1995_mean.tif'), format = 'GTiff', overwrite = T)
+writeRaster(adm2_2000_mean, paste0(outputdir, '/', indicator, '_adm2_2000_mean.tif'), format = 'GTiff', overwrite = T)
+writeRaster(adm2_2005_mean, paste0(outputdir, '/', indicator, '_adm2_2005_mean.tif'), format = 'GTiff', overwrite = T)
+writeRaster(adm2_2010_mean, paste0(outputdir, '/', indicator, '_adm2_2010_mean.tif'), format = 'GTiff', overwrite = T)
 writeRaster(adm2_2015_mean, paste0(outputdir, '/cough_abx_adm2_2015_mean.tif'), format = 'GTiff', overwrite = T)
 
 # For pixels level read in the raster brick and split
