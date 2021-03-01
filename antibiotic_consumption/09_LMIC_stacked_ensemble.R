@@ -11,6 +11,7 @@ library(dplyr)
 library(glmnet)
 library(matrixStats)
 library(quadprog)
+library(foreign)
 library(Cubist, lib = '/ihme/homes/annieb6/temp_packages')
 library(nnet, lib = '/ihme/homes/annieb6/temp_packages')
 library(randomForest, lib = '/ihme/homes/annieb6/temp_packages')
@@ -24,7 +25,7 @@ outputdir <-  paste0('/ihme/homes/annieb6/AMR/antibiotic_use/sales_data/', model
 dir.create(outputdir, showWarnings = F, recursive = T)
 
 #Load data
-mydata <- data.table(read.csv('/ihme/homes/annieb6/AMR/antibiotic_use/datasets/J01_DDD_2000_2018.csv', stringsAsFactors = F))
+mydata <- data.table(read.csv('/ihme/homes/annieb6/AMR/antibiotic_use/sales_data/input_data/J01_DDD_2000_2018_05_10_20.csv', stringsAsFactors = F))
 names(mydata)[names(mydata) == 'loc_id'] <- 'location_id'
 names(mydata)[names(mydata) == 'year'] <- 'year_id'
 
@@ -1074,14 +1075,13 @@ write.csv(child_model_metrics, paste0(outputdir, '/national_stacker_metrics.csv'
 #~~~~~~~~~~~~~~~~~~~~~#
 # Plot the results ####
 #~~~~~~~~~~~~~~~~~~~~~#
-library(foreign)
 locs <- read.dbf('/snfs1/DATA/SHAPE_FILES/GBD_geographies/master/GBD_2019/master/shapefiles/GBD2019_analysis_final_loc_set_22.dbf')
 covs <- data.table(covs)
 
 if(transformation == 'log'){
   covs[, gam := exp(gam)]
-  covs[, enet := exp(enet)]
-  covs[, rf := exp(rf)]
+  covs[, ridge := exp(ridge)]
+  # covs[, rf := exp(rf)]
   covs[, nnet := exp(nnet)]
   covs[, cubist := exp(cubist)]
   covs[, xgboost := exp(xgboost)]

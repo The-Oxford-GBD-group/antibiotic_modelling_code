@@ -13,7 +13,7 @@ library(RColorBrewer)
 source('/share/code/st_gpr/central/stgpr/r_functions/utilities/utility.r')
 
 # Run details
-run_id           <- 148367
+run_id           <- 164387
 indicator        <- 'abx_ddd'
 min_year         <-  2000
 max_year         <-  2018
@@ -125,8 +125,8 @@ png(paste0('/ihme/covariates/ubcov/model/output/', run_id, '/LMIC_is_correlation
 print(
   ggplot(mydata)+
     geom_point(aes(x = val, y=gpr_mean))+
-    xlim(1000, 15000)+
-    ylim(1000, 15000)+
+    xlim(1000, 22000)+
+    ylim(1000, 22000)+
     geom_abline(slope = 1, intercept = 0, colour = 'red')+
     theme_bw() +
     theme(strip.background = element_rect(fill = "white")) +
@@ -140,24 +140,12 @@ print(
 ) 
 dev.off()
 
-
-
 #~~~~~~~~~~~~~~~~~~~~~#
 # Save the results ####
 #~~~~~~~~~~~~~~~~~~~~~#
-
+mydata <- data.table(mydata)
 mydata <- mydata[,.(location_id, year_id, age_group_id, sex_id, gpr_mean, gpr_lower, gpr_upper)]
 write.csv(mydata, paste0('/ihme/covariates/ubcov/model/output/', run_id, '/model_estimates.csv'), row.names = F)
 
-my.palette <- brewer.pal(n = 10, name = "Spectral")
-my.palette <- brewer.pal(n = 9, name = "YlGnBu")
 
-png(paste0('/ihme/covariates/ubcov/model/output/', run_id, '/2018_estimates_maps.png'),
-    height = 10, width = 20, unit = 'cm', res = 150)
-print(
-  
-spplot(estimates, zcol = paste0('X_', years[5]), col.regions = my.palette, at = seq(0, 18000, 2000), length = 100, main = 'Daily Defined Doses of antibiotics per 1000 population')+
-  layer_(sp.polygons(IHME_shp, fill ='#bdbdbd'))
-)  
-dev.off()
 

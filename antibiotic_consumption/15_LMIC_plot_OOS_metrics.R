@@ -9,16 +9,16 @@ library(caret)
 library(ini, lib = '/share/homes/annieb6/temp_packages/')
 source('/share/code/st_gpr/central/stgpr/r_functions/utilities/utility.r')
 
-run_date = '2020_05_05'
+run_date = '2020_10_05'
 mydata <- read.csv(paste0('/share/homes/annieb6/AMR/antibiotic_use/sales_data/holdouts/', run_date, '/LMIC_master_data.csv'), stringsAsFactors = F)
 #restrict to LMICs
 
-run_ids <- c('148376',
-             '148379',
-             '148382',
-             '148385',
-             '148388',
-)
+run_ids <- c('164453',
+             '164456',
+             '164459',
+             '164462',
+             '164465'
+             )
 
 #load in the GPR results and look at the OOS fits
 for(i in 1:length(run_ids)){

@@ -10,10 +10,10 @@ source('r_functions/registration/register.R')
 source('r_functions/registration/sendoff.R')
 
 # Arguments
-path_to_config <- '/ihme/code/geospatial/annieb6/lbd_amr/antibiotics/abx_sales/abx_sales_config.csv'
+path_to_config <- '/ihme/code/geospatial/annieb6/lbd_amr/antibiotic_modelling_code/antibiotic_consumption/abx_sales_config.csv'
 project <- 'proj_geospatial'
 
-models_to_run = c(1:6)
+models_to_run = c(15:19)
 for(i in models_to_run){
   model_index_id<- i
   

@@ -5,7 +5,7 @@ library(data.table)
 library(foreign)
 rm(list = ls())
 
-run_date = '2020_05_05'
+run_date = '2020_10_05'
 
 #get the location files
 locs <- read.dbf('/snfs1/DATA/SHAPE_FILES/GBD_geographies/master/GBD_2019/master/shapefiles/GBD2019_analysis_final_loc_set_22.dbf')
@@ -22,15 +22,6 @@ hic <- hic[hic$year_id>=2000,]
 
 # Join together
 mydata <- rbind(lmic, hic)
-
-#sum china and hong kong
-chn <- mydata[mydata$location_id == 354 | mydata$location_id == 44533,]
-chn <- chn[,.(location_id = 6,
-              cv_custom_stage_1 = sum(cv_custom_stage_1)),
-           by = c('year_id', 'age_group_id', 'sex_id')]
-mydata <- mydata[mydata$location_id != 6,]
-mydata <- rbind(mydata, chn)
-rm(chn)
 
 # reshape wide
 mydata <- dcast(mydata, location_id ~ year_id, value.var = 'cv_custom_stage_1')
@@ -115,10 +106,28 @@ write.csv(mydata, paste0('/ihme/homes/annieb6/AMR/antibiotic_use/sales_data/cust
 
 # format input data
 mydata <- read.csv('/ihme/homes/annieb6/AMR/antibiotic_use/sales_data/input_data/J01_DDD_2000_2018.csv', stringsAsFactors = F)
-# mydata <- mydata[!(mydata$country == 'Brazil' & mydata$source == 'IQVIA'),]
+mydata <- data.table(mydata)
+
+#combine china and hong kong (note, no political reasons for this simply to fit mapping geographies)
+chn <- mydata[mydata$country == 'CHINA' | mydata$country == 'HONG KONG',]
+chn <- chn[,.(super_region = 4,
+              region = 5,
+              country = 'CHINA',
+              iso3 = 'CHN',
+              loc_id = 6,
+              GAUL_CODE = 147295,
+              pop = sum(pop),
+              source = 'IQVIA',
+              ddd = sum(ddd)),
+           by = 'year']
+chn$ddd_per_1000 <- chn$ddd/(chn$pop/1000)
+
+mydata <- mydata[!(mydata$country == 'CHINA' | mydata$country == 'HONG KONG'),]
+mydata <- rbind(mydata, chn)
+
 mydata$sex_id <- 3 
 mydata$age_group_id <- 22
-mydata$measure <- 'continuous'
+mydata$measure_id <- 19
 mydata$sample_size <- (mydata$ddd/mydata$ddd_per_1000)*1000
 mydata$variance <- mydata$ddd_per_1000/1000000
 mydata$is_outlier <- 0
