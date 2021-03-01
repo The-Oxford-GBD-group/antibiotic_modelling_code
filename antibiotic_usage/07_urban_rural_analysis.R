@@ -148,7 +148,7 @@ ggplot(adm0[adm0$year == 2000,])+
 dev.off()
 
 #plot the percentage difference
-adm0$percent_diff <- 100-(adm0$urban_mean/adm0$rural_mean*100)
+adm0$percent_diff <- ((adm0$rural_mean-adm0$urban_mean)/adm0$urban_mean)*100
 adm0$region <- factor(adm0$region, levels = c("Sub-Saharan Africa",
                                               "Southeast Asia, East Asia & Oceania",                                   
                                               "South Asia",
@@ -171,12 +171,14 @@ ggplot(adm0[adm0$year == 2018 & !is.na(adm0$percent_diff),])+
                                "#984ea3",
                                 "#fe9929"))+
   labs(x = 'Country',
-       y = 'Deviation of rural antibiotic usage from urban anitbiotic usage (%)',
+       y = 'Relative percentage difference of rural to urban anitbiotic usage',
        fill = 'GBD Super region')+
   theme_bw()+
   theme(axis.text.x = element_text(angle = 90, hjust = 1))+
-  theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank())
+  theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank())+
+  theme(legend.position = 'bottom')
 dev.off()
 
+write.csv(adm0, '/ihme/geospatial/mbg/antibiotics/cough_antibiotics/output/2020_02_15_03_49_34/urban_rural/urban_rural_abx_usage.csv', row.names = F)
 #guyana and western sahara do not have values and some of the countries are 100% urban/rural  
 
