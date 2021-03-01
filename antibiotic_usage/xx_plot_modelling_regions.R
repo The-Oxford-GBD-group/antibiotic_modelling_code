@@ -7,15 +7,12 @@ library(sf)
 library(raster)
 library(ggplot2)
 
-shp <- st_read('Z:/AMR/Shapefiles/2019_10_10/lbd_standard_admin_0.shp')
-
-#keep all national data but split hing kong and china (removing china as a whole)
-shp <- shp[shp$level == 3 ,]
+shp <- st_read('Z:/AMR/Shapefiles/admin2013_0.shp')
 
 # merge on the modelling regions
 reg <- read.csv("Z:/AMR/Misc/MBG_regions/MBG_modelling_regions.csv")
 
-my_shp <- merge(shp, reg, by.x = 'ihme_lc_id', by.y = 'iso3', all.x = T, all.y = T)
+my_shp <- merge(shp, reg, by.x = 'COUNTRY_ID', by.y = 'iso3', all.x = T, all.y = T)
 my_shp$region <-  as.character(my_shp$region)
 
 my_shp$region[my_shp$region == 'dia_mid_east'] <- 'Middle East' 
@@ -54,10 +51,9 @@ my_shp$region <- factor(my_shp$region, levels = c("Balkans & Caucasus",
                                                    "High income (not modelled)"))
 
 
-png('Z:/AMR/Covariates/antibiotic_use/abx_use/figures/modelling_regions2.png',
+png('Z:/AMR/Covariates/antibiotic_use/abx_use/figures/modelling_regions.png',
     height = 20, width = 30, unit = 'cm', res = 300)
 ggplot()+
-  # geom_sf(data = background_shp, fill = '#bdbdbd',colour = 'black', size = 0.25)+
   geom_sf(data = my_shp, aes(fill = region),colour = 'black', size = 0.25)+
   theme_bw()+
   theme(line = element_blank(),
@@ -79,7 +75,6 @@ ggplot()+
   labs(fill ='Region')+
   theme(legend.title = element_text(size = 10),
          legend.text = element_text(size = 8))
-  # theme(legend.position = 'bottom')+
 
 dev.off()
 
