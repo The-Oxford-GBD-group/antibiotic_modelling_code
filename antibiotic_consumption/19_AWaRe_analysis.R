@@ -8,19 +8,21 @@ library(ggplot2)
 library(viridis)
 library(sp)
 library(ggpubr)
-source('H:/Functions/seqlast.R')
-source('H:/Functions/simpleCap.R')
+source('C:/Users/Annie/Documents/random_functions/simpleCap.R')
 
-setwd('Z:/AMR/Covariates/antibiotic_use/')
+setwd('C:/Users/Annie/Documents/GRAM/antibiotic_use/antibiotic_consumption/')
 
 #1. Read in and prep datasets ####
-IQVIA <- fread('IQVIA/imputation/imputed_ddd_per_1000_2000_2018.csv', stringsAsFactors = F)
+IQVIA <- fread('IQVIA/datasets/cleaned_ddds_2000_2018.csv')
 IQVIA <-  IQVIA[IQVIA$ATC3 != 'J04A',]
 
 AWaRe <- fread('IQVIA/lookup_tables/AWaRE_v2.csv', stringsAsFactors = F)
 IQVIA <-  merge(IQVIA, AWaRe, by = c('ATC5'), all.x = T, all.y = F)
 IQVIA$AWARE[is.na(IQVIA$AWARE)] <-  'Other'
 IQVIA$AWARE[IQVIA$AWARE==""] <-  'Other'
+IQVIA$total_ddd <- rowSums(IQVIA[,.(hospital_ddd, retail_ddd,combined_ddd)], na.rm = T)
+IQVIA$total_ddd_per_1000_pop <- rowSums(IQVIA[,.(hospital_ddd_per_1000_pop, retail_ddd_per_1000_pop, combined_ddd_per_1000_pop)], na.rm = T)
+
 IQVIA <- IQVIA[,.(total_ddd, ddd_per_1000=total_ddd_per_1000_pop),
                by = c("super_region", "region", "country", "iso3", "loc_id", "year", "AWARE")]
 
@@ -66,9 +68,10 @@ countries <- unique(mydata_2018$country)
 mydata_2018$country <-  factor(mydata_2018$country, levels = countries)
 
 plot_2000<-
-  ggplot(mydata_2000, aes(x = country, y = prop_aware, fill =AWARE))+
+  ggplot(mydata_2000[!is.na(mydata_2000$prop_aware) & mydata_2000$country!='Algeria'], aes(x = country, y = prop_aware, fill =AWARE))+
     geom_bar(position="fill", stat="identity")+
     labs(x = NULL, y = 'Proportion of antibiotics consumed', fill = NULL)+
+    geom_hline(yintercept = 0.6, linetype = "dashed", color='black', size=1)+
     theme_bw()+
     theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1))+
     scale_fill_manual(values = c('#984ea3', '#4daf4a', '#377eb8', '#e41a1c'))+
@@ -81,6 +84,7 @@ plot_2018<-
   ggplot(mydata_2018, aes(x = country, y = prop_aware, fill =AWARE))+
     geom_bar(position="fill", stat="identity")+
     labs(x = NULL, y = 'Proportion of antibiotics consumed', fill = NULL)+
+    geom_hline(yintercept = 0.6, linetype = "dashed", color='black', size=1)+
     theme_bw()+
     theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1))+
     scale_fill_manual(values = c('#984ea3', '#4daf4a', '#377eb8', '#e41a1c'))+
@@ -88,25 +92,25 @@ plot_2018<-
     theme(legend.position = 'bottom',
           axis.title=element_text(size=8))
   
-png('Z:/AMR/Covariates/antibiotic_use/results/GPR5/figures/plots/AWaRE_2000_2018.png',
+png('results/figures/plots/AWaRE_2000_2018v2.png',
     height = 20, width = 40, units = 'cm', res = 300)
   ggarrange(plot_2000, plot_2018, ncol = 1, labels = c('a', 'b'), common.legend = TRUE, legend="bottom")
 dev.off()
 
 #2. Plot map of proportion of AWaRE antibitoics ####
-shp <- st_read('Z:/AMR/Shapefiles/IQVIA_analysis.shp')
+shp <- st_read('c:/Users/Annie/Documents/GRAM/shapefiles/IQVIA_analysis_simple.shp')
 shp <- shp[shp$level == 3 | shp$loc_id == 44533 | shp$loc_id == 354,]
 shp <- shp[shp$loc_id != 6,]
 
 #merge on the data
 my_shp <- merge(shp, mydata, by = 'loc_id') 
 
-background_shp <- shp[!(shp$loc_id %in% my_shp$loc_id[my_shp$year == 2000]) | shp$ihme_lc_id == 'KEN' | shp$ihme_lc_id == 'VEN',]
+background_shp <- shp[!(shp$loc_id %in% my_shp$loc_id[my_shp$year == 2018]) | shp$ihme_lc_id == 'KEN' | shp$ihme_lc_id == 'VEN',]
 
 my_shp$AWARE <- factor(my_shp$AWARE, levels = c("Access", "Watch", 'Reserve', 'Other'))  
 
 #a. For 2018
-png('results/GPR5/figures/maps/AWaRe_2018.png',
+png('results/figures/maps/AWaRe_2018v2.png',
      height = 20, width = 20, units = 'cm', res = 200)
 ggplot()+
   geom_sf(data = background_shp, fill = '#bdbdbd',colour = 'black', size = 0.25)+

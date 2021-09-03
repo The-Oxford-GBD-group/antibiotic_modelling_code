@@ -9,35 +9,33 @@ library(RColorBrewer)
 library(viridis)
 library(sf)
 
-source('H:/Functions/seqlast.R')
-
-setwd('Z:/AMR/Covariates/antibiotic_use/')
+setwd('C:/Users/Annie/Documents/GRAM/antibiotic_use/antibiotic_consumption/')
 
 #1. Read in and combine all of the atc3 files ####
-IQVIA <- data.table(read.csv('IQVIA/imputation/imputed_ddd_per_1000_2000_2018.csv', stringsAsFactors = F))
-# WHO <- data.table(read.csv("WHO/ATC_DDD_per_1000_clean.csv", stringsAsFactors = F))
-KEN <- data.table(read.csv('other_sources/KEN/full_KEN_data.csv', stringsAsFactors = F))
-WSM <- data.table(read.csv('other_sources/WSM/WSM_abx_ddd.csv', stringsAsFactors = F))
-ESAC <- read.csv('ESAC-NET/ATC_DDD_2000_2018.csv', stringsAsFactors = F)
+IQVIA <- fread('IQVIA/datasets/cleaned_ddds_2000_2018.csv')
+KEN <- fread('other_sources/KEN/full_KEN_data.csv')
+WSM <- fread('other_sources/WSM/WSM_abx_ddd.csv')
+ESAC <- fread('ESAC-NET/ATC_DDD_2000_2018.csv')
 colnames(ESAC)[1] <-  'super_region'
 ESAC <- ESAC[ESAC$total_ddd>0,]
 
 #Capitalise all countries for consistancy
-# WHO$country <-  toupper(WHO$country)
 KEN$country <-  toupper(KEN$country)
 WSM$country <-  toupper(WSM$country)
 
+#calculate totals for IQVIA
+IQVIA$total_ddd <- rowSums(IQVIA[,.(hospital_ddd, retail_ddd,combined_ddd)], na.rm = T)
+IQVIA$total_ddd_per_1000_pop <- rowSums(IQVIA[,.(hospital_ddd_per_1000_pop, retail_ddd_per_1000_pop, combined_ddd_per_1000_pop)], na.rm = T)
+
 #get netherlands from IQVIA to use later
 NLD <- IQVIA[IQVIA$iso3 == 'NLD',]
+
 # Exlcusions to remove duplicated data 
 IQVIA <- IQVIA[IQVIA$country != 'DENMARK']
 ESAC <- ESAC[!(ESAC$iso3 %in% IQVIA$iso3),] 
-# WHO <- WHO[!(WHO$iso3 %in% ESAC$iso3),] 
-# WHO <- WHO[!(WHO$iso3 %in% IQVIA$iso3),] 
 
 #set the source
 IQVIA$source <- 'IQVIA'
-# WHO$source <- 'WHO'
 KEN$source <- 'KEN'
 WSM$source <- 'WSM'
 ESAC$source <- 'ESAC'
@@ -60,7 +58,7 @@ WSM <- WSM[,.(total_ddd = sum(total_ddd),
 # Combined datasets
 # mydata <- rbind(ESAC, WHO, IQVIA, KEN, WSM)
 mydata <- rbind(ESAC, IQVIA, KEN, WSM)
-rm(ESAC, WHO, IQVIA, KEN, WSM)
+rm(ESAC, IQVIA, KEN, WSM)
 
 #exclude pre 2000
 mydata <- mydata[mydata$year>= 2000,]
@@ -76,20 +74,23 @@ mydata <- mydata[,.(country, year, ATC3, ATC3_ddd = total_ddd, ATC3_ddd_per_1000
 mydata <- dcast(mydata, country+year~ATC3, value.var = 'ATC3_ddd')
 
 #2. Get the input totals and calculate the proportion in each class ####
-inputs <- data.table(read.csv('combined_sources/J01_DDD_2000_2018.csv', stringsAsFactors = F))
+inputs <- fread('combined_sources/J01_DDD_2000_2018_05_10_20.csv')
+
 #remove netherlands and replace with IQVIA as the sum of abx classes is way lower than the total for some years in esac net
 inputs <- inputs[inputs$country != 'NETHERLANDS',]
 inputs <- inputs[,.(super_region, region, country, year, total_ddd = ddd, total_ddd_per_1000 = ddd_per_1000, population = pop, source)]
 
 #change the codes to names for the super regions and regions
-regs <- read.csv('D:/region_code_lookup.csv', stringsAsFactors = F)
-regs <-  regs[,1:4]
-inputs <- merge(inputs, regs, by.x = c('super_region', 'region'), by.y =c('super_region_code', 'region_code'))
-inputs$super_region <- NULL
+regs <- read.csv('c:/Users/Annie/Documents/GRAM/misc/ihme_location_hierarchy.csv', stringsAsFactors = F)
+regs <-  regs[,1:2]
+inputs <- merge(inputs, regs, by.x = 'region', by.y = 'location_id')
 inputs$region <- NULL
-names(inputs)[names(inputs) == 'super_region.y'] <- 'super_region'
-names(inputs)[names(inputs) == 'region.y'] <- 'region'
+colnames(inputs)[colnames(inputs) == 'location_name'] <- 'region'
+inputs <- merge(inputs, regs, by.x = 'super_region', by.y = 'location_id')
+inputs$super_region <- NULL
+colnames(inputs)[colnames(inputs) == 'location_name'] <- 'super_region'
 rm(regs)
+
 NLD <- NLD[,.(super_region = 'High-income',
               region = 'Western Europe',
               total_ddd = sum(total_ddd),
@@ -201,8 +202,8 @@ mydata <- mydata[,.(country, year, super_region, region,
 
 
 #4. Apply the proportions to the modelled estimates of DDD/1000/day ####
-J01 <- data.table(read.csv('results/all_results.csv', stringsAsFactors = F))
-J01 <- J01[,.(super_region = Super.region, region = Region, country = toupper(Country), year, total_ddd = ddd, total_ddd_per_1000 = ddd_per_1000, population)]
+J01 <- fread('results/all_results.csv')
+J01 <- J01[,.(super_region = `Super region`, region = Region, country = toupper(Country), year, total_ddd = ddd, total_ddd_per_1000 = ddd_per_1000_per_day, population)]
 
 #remove FWA and central america from the proportions (as these will then get sorted by regions)
 mydata <- mydata[!(mydata$country == 'FRENCH WEST AFRICA' | mydata$country == 'CENTRAL AMERICA' | mydata$country == 'HONG KONG'),]
@@ -216,6 +217,8 @@ all_data$region.y <- NULL
 colnames(all_data)[colnames(all_data)== 'region.x'] <-  'region'
 
 #change to factors as for some reason merge isnt working
+#for some reason there are 2 western Europes and cannot tell the difference
+regions$region[regions$region == unique(regions$region)[18]] <- 'Western Europe'
 all_data$super_region <-  as.factor(all_data$super_region)
 all_data$region <-  as.factor(all_data$region)
 super_regions$super_region <-  as.factor(super_regions$super_region)
@@ -224,8 +227,8 @@ levels(all_data$super_region) <-  levels(super_regions$super_region)
 levels(regions$region) <- levels(all_data$region)
 
 #match the region and super region proportions and replace where required
-all_data <- merge(all_data, regions, by = c('region', 'year'), all.x = T)
-all_data <- merge(all_data, super_regions, by = c('super_region', 'year'), all.x = T)
+all_data <- merge(all_data, regions, by = c('region', 'year'), all.x = T, allow.cartesian=TRUE)
+all_data <- merge(all_data, super_regions, by = c('super_region', 'year'), all.x = T, allow.cartesian=TRUE)
 
 all_data$J01A[is.na(all_data$J01A)] <- all_data$reg_J01A[is.na(all_data$J01A)]
 all_data$J01A[is.na(all_data$J01A)] <- all_data$spr_reg_J01A[is.na(all_data$J01A)]
@@ -238,6 +241,7 @@ all_data$J01C[is.na(all_data$J01C)] <- all_data$spr_reg_J01C[is.na(all_data$J01C
 
 all_data$J01D[is.na(all_data$J01D)] <- all_data$reg_J01D[is.na(all_data$J01D)]
 all_data$J01D[is.na(all_data$J01D)] <- all_data$spr_reg_J01D[is.na(all_data$J01D)]
+
 
 all_data$J01E[is.na(all_data$J01E)] <- all_data$reg_J01E[is.na(all_data$J01E)]
 all_data$J01E[is.na(all_data$J01E)] <- all_data$spr_reg_J01E[is.na(all_data$J01E)]
@@ -301,7 +305,7 @@ mydata$ATC3[mydata$ATC3 == 'J01G'] <- 'J01G: Aminoglycosides'
 mydata$ATC3[mydata$ATC3 == 'J01M'] <- 'J01M: Quinolones'
 
 #merge onto shapefile
-shp <- st_read('Z:/AMR/Shapefiles/GBD2019/GBD2019_analysis_final.shp')
+shp <- st_read('C:/Users/Annie/Documents/GRAM/shapefiles/GBD2020_mapping_final.shp')
 shp <- shp[shp$level == 3,]
 shp$country <- toupper(shp$loc_name)
 
@@ -309,7 +313,7 @@ shp$country <- toupper(shp$loc_name)
 my_shp <- merge(shp, mydata, by = 'country') 
 
 #a.For 2018
-png('results/figures/maps/DDD_1000_ATC3_2018.png',
+png('results/figures/maps/DDD_1000_ATC3_2018v2.png',
     height = 20, width = 20, units = 'cm', res = 300)
 ggplot()+
   geom_sf(data = my_shp[my_shp$year == 2018,], aes(fill = ddd_per_1000_per_day),colour = 'black', size = 0.25)+
